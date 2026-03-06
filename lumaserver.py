@@ -2320,6 +2320,7 @@ def _monitor_cs31_upgrade(ip: str, firmware_path: str, session: requests.Session
     
     Status progression: sending file -> updating -> rebooting -> confirm version -> success
     When device is unreachable, we're in 'rebooting' state.
+    Validates that the new firmware version matches the uploaded version.
     Returns (ok, status_detail, telemetry)
     """
     telemetry: List[Dict[str, Any]] = []
@@ -2327,10 +2328,23 @@ def _monitor_cs31_upgrade(ip: str, firmware_path: str, session: requests.Session
     poll_interval = 2.0  # seconds between checks
     last_reachable = True
     first_unreachable_time = None
-    expected_version = os.path.basename(firmware_path).split('_')[0] if '_' in os.path.basename(firmware_path) else None
+    
+    # Extract version from firmware filename
+    # Expected formats: at-ome-cs31_v1.2.5.bin, at-ome-cs31_1.2.5.bin, firmware_v1.0.0.bin, etc.
+    fname = os.path.basename(firmware_path).lower()
+    expected_version = None
+    
+    # Try to extract version from filename (patterns like v1.2.3, _1.2.3)
+    import re
+    version_match = re.search(r'v?(\d+\.\d+\.\d+|\d+\.\d+)', fname)
+    if version_match:
+        expected_version = version_match.group(1)
     
     logging.info(f"[CS31-Monitor] Starting upgrade monitoring for {ip}")
-    logging.info(f"[CS31-Monitor] Expected version pattern: {expected_version}")
+    logging.info(f"[CS31-Monitor] Firmware: {fname}")
+    logging.info(f"[CS31-Monitor] Expected version: {expected_version or 'unknown'}")
+    
+    version_before_upgrade = None
     
     while time.time() - start_time < timeout_sec:
         elapsed = int(time.time() - start_time)
@@ -2375,6 +2389,10 @@ def _monitor_cs31_upgrade(ip: str, firmware_path: str, session: requests.Session
                     result.get("Version") or 
                     result.get("version")
                 )
+                # Capture version before upgrade (on first successful check while still reachable)
+                if version_before_upgrade is None and is_reachable and first_unreachable_time is None:
+                    version_before_upgrade = current_version
+                
                 if debug:
                     logging.debug(f"[CS31-Monitor] System info response: {result}")
         except Exception as e:
@@ -2405,6 +2423,7 @@ def _monitor_cs31_upgrade(ip: str, firmware_path: str, session: requests.Session
             version_checks = 0
             version_stable = True
             last_observed_version = current_version
+            all_versions = [current_version] if current_version else []
             
             for check in range(3):
                 time.sleep(1)
@@ -2420,6 +2439,7 @@ def _monitor_cs31_upgrade(ip: str, firmware_path: str, session: requests.Session
                             sysinfo["result"].get("Version") or 
                             sysinfo["result"].get("version")
                         )
+                        all_versions.append(observed)
                         if observed != last_observed_version:
                             version_stable = False
                         last_observed_version = observed
@@ -2428,19 +2448,53 @@ def _monitor_cs31_upgrade(ip: str, firmware_path: str, session: requests.Session
                 except Exception:
                     pass
             
-            current_version = last_observed_version
-            telemetry.append({
+            final_version = last_observed_version
+            
+            # Validate version changed and matches expected
+            version_match_ok = True
+            version_changed = True
+            version_change_msg = ""
+            
+            if version_before_upgrade and final_version:
+                if version_before_upgrade == final_version:
+                    version_changed = False
+                    version_change_msg = f"WARNING: Version did not change! Before: {version_before_upgrade}, After: {final_version}"
+                    logging.warning(f"[CS31-Monitor] {version_change_msg}")
+                else:
+                    version_change_msg = f"Version changed: {version_before_upgrade} → {final_version}"
+                    logging.info(f"[CS31-Monitor] {version_change_msg}")
+            
+            if expected_version and final_version:
+                if expected_version not in final_version and final_version not in expected_version:
+                    version_match_ok = False
+                    logging.warning(f"[CS31-Monitor] Version mismatch! Expected: {expected_version}, Got: {final_version}")
+            
+            # Build final telemetry
+            final_telem = {
                 "elapsed_sec": int(time.time() - start_time),
                 "ping": "reachable",
                 "status": "confirm_version",
-                "version": current_version,
+                "version": final_version,
+                "version_before": version_before_upgrade,
+                "version_changed": version_changed,
+                "version_match_expected": version_match_ok,
                 "version_checks": version_checks,
                 "version_stable": version_stable,
                 "reboot_duration_sec": reboot_duration
-            })
+            }
+            telemetry.append(final_telem)
             
-            logging.info(f"[CS31-Monitor] Upgrade complete! Final version: {current_version}")
-            return True, f"success (reboot={reboot_duration}s, version={current_version})", telemetry
+            # Determine success based on version validation
+            if not version_changed:
+                logging.error(f"[CS31-Monitor] Upgrade FAILED - version did not change")
+                return False, f"upgrade_failed: version_unchanged (before: {version_before_upgrade}, after: {final_version})", telemetry
+            
+            if expected_version and not version_match_ok:
+                logging.error(f"[CS31-Monitor] Upgrade FAILED - version mismatch")
+                return False, f"upgrade_failed: version_mismatch (expected: {expected_version}, got: {final_version})", telemetry
+            
+            logging.info(f"[CS31-Monitor] Upgrade complete! {version_change_msg}")
+            return True, f"success (reboot={reboot_duration}s, {version_change_msg})", telemetry
         
         # Wait before next poll
         time.sleep(poll_interval)
