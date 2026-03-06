@@ -1,0 +1,2379 @@
+<!doctype html>
+<html>
+<head>
+  <link rel="icon" type="image/x-icon" href="/ui/favicon.ico">
+  <meta charset="utf-8"/>
+  <title>LumaSuite Device Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root{--bg:#1d232a;--card:#222a33;--panel-2:#262f39;--fg:#e9eef5;--muted:#9aa7b4;--accent:#1e90ff;--accent-strong:#1f2937;--border:rgba(255,255,255,0.08);--table:#0f172a;--spinner:#9ca3af;--danger:#e5534b}
+    .light{--bg:#f7f8fb;--card:#fff;--panel-2:#f2f5f8;--fg:#0d1117;--muted:#5a6b7a;--border:rgba(0,0,0,.08);--table:#fff;--accent:#1e90ff;--accent-strong:#f2f5f8;--spinner:#6b7280}
+    body { font-family: Calibri, system-ui, Segoe UI, Roboto, sans-serif; margin:16px; background:var(--bg); color:var(--fg); min-width:1000px; }
+    h1 { margin:0 0 14px; font-size:22px; font-weight:600; }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .row-between { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .box { border:1px solid var(--border); background:var(--card); border-radius:10px; padding:12px; margin:4px 0; }
+    table { width:100%; border-collapse:collapse; background:var(--table); }
+    th, td { padding:6px 8px; border-bottom:1px solid var(--border); text-align:left; }
+    th.sortable { cursor:pointer; user-select:none; }
+    th.sortable .caret { opacity:.6; margin-left:6px; }
+    a.ip { color:#93c5fd; text-decoration: underline; cursor:pointer; }
+    .status { padding:2px 8px; border-radius:999px; font-size:12px; display:inline-flex; align-items:center; gap:6px; }
+    .s-sending { background:#854d0e; color:#fde68a; }
+    .s-updating { background:#4338ca; color:#c7d2fe; }
+    .s-rebooting { background:#7f1d1d; color:#fecaca; }
+    .s-rebooted { background:#14532d; color:#bbf7d0; }
+    .s-resetting { background:#4b5563; color:#e5e7eb; }
+    .s-idle { background:#14532d; color:#bbf7d0; }
+    .s-idle-unchanged { background:#374151; color:#e5e7eb; }
+    .s-unknown { background:#4b5563; color:#d1d5db; }
+    .s-offline { background:#7f1d1d; color:#fecaca; }
+    .btn { padding:3px 8px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:var(--accent); color:var(--fg); }
+    .btn:hover { filter: brightness(1.1); }
+    select, input, button { font-size:14px; color:var(--fg); background:var(--card); border:1px solid var(--border); padding:6px 8px; border-radius:6px; }
+    .small { font-size:12px; color:var(--muted); }
+    .w80 { width:80px; } .w120 { width:120px; } .w160 { width:160px; } .w240 { width:240px; }
+    label.toggle { display:flex; align-items:center; gap:8px; user-select:none; cursor:pointer; }
+    /* slider reduced 25% */
+    .switch { position:relative; width:33px; height:18px; background:var(--border); border-radius:999px; }
+    .switch.on { background:rgba(30,144,255,.25); }
+    .knob { position:absolute; top:1px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--fg); transition:left .15s; }
+    .switch.on .knob { left:17px; background:var(--accent); }
+    .pill { padding:4px 10px; border-radius:999px; background:var(--accent-strong); color:var(--fg); }
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid var(--spinner); border-top-color:transparent; border-radius:50%; animation: spin .8s linear infinite; vertical-align:-2px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .err { color:#fca5a5; }
+    .btn-blink { padding:4px 8px; border-radius:50%; border:1px solid var(--border); cursor:pointer; background:var(--card); font-size:16px; line-height:1; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; }
+    .btn-blink:hover { background:var(--accent); transform:scale(1.05); }
+    /* Custom tooltip styling */
+    .tooltip-info { position:relative; display:inline-block; }
+    .tooltip-info:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 150%;
+      right: 0;
+      background: var(--card);
+      color: var(--fg);
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      white-space: normal;
+      max-width: 280px;
+      width: max-content;
+      z-index: 1000;
+      margin-bottom: 5px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+  </style>
+
+<style>
+  .hover-preview{
+    position:fixed; z-index:10000; display:none;
+    border:1px solid var(--border); background:var(--card);
+    padding:6px; border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.35);
+    max-width:50vw; max-height:50vh; overflow:hidden;
+  }
+  .hover-preview img{ max-width:50vw; max-height:50vh; display:block; }
+</style>
+<div id="hover_preview" class="hover-preview"><img id="hover_preview_img" alt="preview"/></div>
+
+<style>
+  /* Option 1b: Classic Tabs with Icons */
+  .nav-tabs { display:flex; gap:4px; border-bottom:2px solid var(--border); }
+  .nav-tab { padding:6px 14px; text-decoration:none; color:var(--fg); border-radius:6px 6px 0 0; transition:all 0.2s; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; }
+  .nav-tab:hover { background:rgba(30,144,255,0.1); }
+  .nav-tab.active { background:var(--accent); color:#fff; border-bottom:2px solid var(--accent); margin-bottom:-2px; }
+
+  /* Header layout */
+  .header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .header .right { display:flex; align-items:center; gap:8px; }
+</style>
+</head>
+<style>
+  .gear-btn { width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); cursor:pointer; font-size:18px; color:var(--fg); }
+  .gear-choice { background:transparent;border:1px solid var(--border);padding:8px;border-radius:8px;cursor:pointer;color:var(--fg);display:flex;align-items:center;gap:8px }
+  /* Column visibility toggles */
+  .col-dante { display:table-cell; }
+  .col-dante-name { display:table-cell; }
+  .col-dante-ip { display:table-cell; }
+  .col-edid-resolution { display:table-cell; }
+  .col-model { display:table-cell; }
+  body.hide-dante .col-dante, body.hide-dante-name .col-dante-name, body.hide-dante-ip .col-dante-ip, body.hide-edid-resolution .col-edid-resolution, body.hide-model .col-model { display:none; }
+</style>
+</head>
+<body>
+  <!-- Connection Status Banner -->
+  <div id="connection_banner" style="display:none; position:fixed; top:0; left:0; right:0; background:#d32f2f; color:white; padding:12px 20px; font-weight:bold; text-align:center; z-index:10000; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    ⚠️ Connection lost, check application.
+  </div>
+<script>
+  // Apply theme immediately to prevent flash
+  (function(){
+    const dark = localStorage.getItem("dark") !== "false";
+    document.body.classList.toggle("light", !dark);
+  })();
+</script>
+  <div class="row header">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <img id="company_logo" src="/ui/companylogo.png" alt="Company Logo" style="height:48px;width:auto;border-radius:6px;">
+      <h1 class="title" style="margin:0;">LumaSuite Device Manager</h1>
+    </div>
+    <div class="right">
+        <div class="nav-tabs" style="margin-bottom:0;">
+          <span class="nav-tab active">
+            <span>📊</span>
+            <span>Device Manager</span>
+          </span>
+          <a class="nav-tab" href="/ui/matrix.html">
+            <span>🔀</span>
+            <span>Matrix Routing</span>
+          </a>
+          <a class="nav-tab" href="/ui/producer.html">
+            <span>🎬</span>
+            <span>Production Studio</span>
+          </a>
+        </div>
+        <label class="toggle" id="header_dark_label" for="dark_mode_toggle" style="display:flex;align-items:center;gap:8px;margin-left:8px;">
+          <input type="checkbox" id="dark_mode_toggle" style="display:none;" />
+          <div style="font-size:14px;">Dark Mode</div>
+          <div id="dark_switch" class="switch on"><div class="knob"></div></div>
+        </label>
+      </div>
+  </div>
+
+  <div class="box" style="position:relative;">
+    <button id="header_gear" class="gear-btn" title="Settings" style="position:absolute; top:8px; right:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+    <div class="row" style="gap:16px;">
+      <div>
+        <label for="adapters" class="small">Adapters</label>
+        <select id="adapters" class="w240"><option value="">(loading adapters...)</option></select>
+      </div>
+      <div>
+        <div style="position:relative; display:inline-block;">
+          <input id="targets" class="w240" placeholder="e.g. 10.1.1.1-254 or 10.1.1.1/24" style="padding-right:28px;"/>
+          <button id="clear_targets" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:4px; line-height:1; display:none;" title="Clear">×</button>
+        </div>
+      </div>
+      <button class="btn" id="scan">Scan</button>
+      <button class="btn" id="stop_scan" style="background:#2196F3; display:none;">Stop Scan</button>
+      <button class="btn" id="clear_units">Clear Units</button>
+      <span id="scan_status" class="small pill"></span>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="row-between">
+      <div class="row">
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="btn" id="refresh_files" style="color:#1e90ff; background:transparent; border:none; font-size:20px; padding:4px 8px; cursor:pointer;" title="Refresh firmware list">🔄</button>
+          <div>
+            <select id="files" class="w240"></select>
+          </div>
+        </div>
+        <label class="toggle" title="After confirming version change, issue factory reset">
+          <input id="reset_after" name="reset_after" type="checkbox" style="width:16px;height:16px; accent-color:#10b981;"/>
+          <span>Factory reset after upgrade</span>
+        </label>
+        <button class="btn" id="upgrade_sel">Upgrade Selected</button>
+        <span id="up_status" class="small"></span>
+      </div>
+      <div class="row" style="justify-content:center; gap:16px;">
+        <label class="toggle" for="poll_units_toggle">
+          <input type="checkbox" id="poll_units_toggle" style="display:none;" />
+          <div>Poll Units</div>
+          <div id="poll_switch" class="switch"><div class="knob"></div></div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px; flex-wrap:wrap;">
+      <span style="font-size:12px; color:var(--muted);">Show columns:</span>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" id="toggle_dante" class="col-toggle" data-col="dante" checked />
+        <span>Dante</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" id="toggle_dante_name" class="col-toggle" data-col="dante-name" checked />
+        <span>Dante Name</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" id="toggle_dante_ip" class="col-toggle" data-col="dante-ip" checked />
+        <span>Dante IP</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" id="toggle_edid_resolution" class="col-toggle" data-col="edid-resolution" checked />
+        <span>EDID/Resolution</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" id="toggle_model" class="col-toggle" data-col="model" checked />
+        <span>Model</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="box">
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th><label for="chk_all" style="cursor:pointer;"><input type="checkbox" id="chk_all"/></label></th>
+          <th class="sortable" data-key="ip">IP <span class="caret">▾</span></th>
+          <th class="sortable" data-key="mac">MAC <span class="caret">▾</span></th>
+          <th class="sortable" data-key="hostname">Hostname <span class="caret">▾</span></th>
+          <th class="sortable" data-key="streamname">Streamname <span class="caret">▾</span></th>
+          <th class="col-dante"><span class="tooltip-info" style="cursor:help;" data-tooltip="Only applicable for encoders">Dante</span></th>
+          <th class="col-dante-name"><span class="tooltip-info" style="cursor:help;" data-tooltip="Only applicable for encoders">Dante name</span></th>
+          <th class="col-dante-ip"><span class="tooltip-info" style="cursor:help;" data-tooltip="Only applicable for encoders">Dante ip</span></th>
+          <th class="col-edid-resolution"><span class="tooltip-info" style="cursor:help;" data-tooltip="Encoder: EDID mode (4K60/1080P/720P/User). Decoder: current output timing.">EDID/Resolution</span></th>
+          <th class="sortable" data-key="type">Type <span class="caret">▾</span></th>
+          <th class="sortable col-model" data-key="model">Model <span class="caret">▾</span></th>
+          <th class="sortable" data-key="version">Version <span class="caret">▾</span></th>
+          <th><span class="tooltip-info" style="cursor:help;" data-tooltip="Encoder: NONE, HDCP1.4, HDCP2.2 | Decoder: HDCP2.2, INPUT, HDCP1.4">HDCP</span></th>
+          <th>Status</th>
+          <th><span class="tooltip-info" style="color:#3b82f6;cursor:help;" data-tooltip="LumaStream Devices will Blink for 30 seconds, the CS31 will blink till you disable the function.">Blink</span></th>
+          <th>Preview</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="row" style="justify-content:space-between; margin-top:8px;">
+      <div style="display:flex; gap:8px;">
+        <button class="btn" id="reboot_sel">Reboot Selected</button>
+        <button class="btn" id="remove_sel" style="background:#991b1b;">Remove Selected</button>
+        <button class="btn" id="password_sync_btn" style="background:#0066cc;">Password Sync</button>
+      </div>
+      <button class="btn" id="export_units">Inventory</button>
+    </div>
+  </div>
+
+<!-- Configuration modal (index page) -->
+<div id="cfg_backdrop" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:20000;">
+  <div class="modal" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;width:520px;max-width:95%;color:var(--fg);">
+    <h3 style="margin:0 0 8px 0;">Configuration</h3>
+    <form autocomplete="off">
+      <div class="row" style="margin-bottom:8px; align-items:center; gap:8px;">
+        <label for="cfg_password" class="small">Password</label>
+        <input id="cfg_password" type="password" style="width:160px;" autocomplete="current-password" />
+        <button id="cfg_pw_toggle" class="btn small" type="button" title="Show/Hide">👁️</button>
+      </div>
+      <div class="row" style="margin-bottom:8px; align-items:center; gap:8px;">
+        <span class="small">Password Hash:</span>
+        <span id="cfg_password_hash" class="code small" style="user-select:text;">(loading)</span>
+        <span id="cfg_password_default" class="badge" style="display:none;">Default</span>
+      </div>
+    <div class="row" style="margin-bottom:8px;">
+      <label for="cfg_ws_port" class="small">WS PORT</label>
+      <select id="cfg_ws_port" style="width:140px;">
+        <option value="80" selected>80 (ws/http)</option>
+        <option value="443">443 (wss/https)</option>
+      </select>
+    </div>
+    <div class="row" style="margin-bottom:8px;">
+      <label for="cfg_concurrency" class="small">Parallel uploads</label>
+      <select id="cfg_concurrency" style="width:80px;">
+        <option>1</option><option>2</option><option>4</option><option selected>6</option><option>8</option><option>12</option>
+      </select>
+    </div>
+    <div class="row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+      <label for="cfg_firmware_path" class="small">Firmware path</label>
+      <input id="cfg_firmware_path" type="text" placeholder="e.g. c:\" style="flex:1;" />
+      <button id="cfg_firmware_browse" class="btn" type="button">Browse</button>
+    </div>
+    <div class="row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+      <label for="cfg_imagestream_path" class="small">Static image path</label>
+      <input id="cfg_imagestream_path" type="text" placeholder="e.g. c:\" style="flex:1;" />
+      <button id="cfg_imagestream_browse" class="btn" type="button">Browse</button>
+    </div>
+    <div class="row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+      <label for="cfg_logos_path" class="small">Logo path</label>
+      <input id="cfg_logos_path" type="text" placeholder="e.g. c:\" style="flex:1;" />
+      <button id="cfg_logos_browse" class="btn" type="button">Browse</button>
+    </div>
+    <div id="browse_hint" class="small" style="display:none;color:var(--muted);margin-top:6px;">
+      If you cannot browse to the file locations, copy and paste the absolute path into the field.
+    </div>
+    <div id="cfg_error" class="row" style="color:var(--danger);display:none;margin-top:6px;"></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;">
+      <button id="cfg_close" class="btn" type="button">Cancel</button>
+      <button id="cfg_save" class="btn" type="button">Save</button>
+    </div>
+    </form>
+  </div>
+</div>
+
+<!-- Server-side folder browser modal -->
+<div id="cfg_browser_backdrop" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:20001;">
+  <div class="modal" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;width:640px;max-width:96%;color:var(--fg);">
+    <h3 style="margin:0 0 8px 0;">Select Folder</h3>
+    <div class="row" style="gap:8px;align-items:center;margin-bottom:8px;">
+      <button id="cfg_browser_up" class="btn small">Up</button>
+      <input id="cfg_browser_path" type="text" style="flex:1" readonly />
+      <button id="cfg_browser_select" class="btn">Select</button>
+      <button id="cfg_browser_cancel" class="btn">Cancel</button>
+    </div>
+    <div id="cfg_browser_list" style="max-height:320px;overflow:auto;border:1px solid var(--border);padding:8px;background:var(--panel-2);border-radius:8px;"></div>
+  </div>
+</div>
+
+<!-- Password Sync Modal -->
+<div id="pw_sync_backdrop" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:20000;">
+  <div class="modal" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;width:420px;max-width:95%;color:var(--fg);">
+    <h3 style="margin:0 0 12px 0;">Password Sync</h3>
+    <form autocomplete="off" id="pw_sync_form" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label for="pw_sync_current" style="font-size:12px;color:var(--muted);">Current Password</label>
+        <input id="pw_sync_current" type="password" placeholder="current password" autocomplete="off" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label for="pw_sync_new" style="font-size:12px;color:var(--muted);">New Password</label>
+        <input id="pw_sync_new" type="password" placeholder="new password" autocomplete="off" />
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="pw_sync_all" />
+        <label for="pw_sync_all" style="cursor:pointer;user-select:none;">Apply to All Devices (override selection)</label>
+      </div>
+      <div id="pw_sync_status" style="color:var(--muted);font-size:12px;min-height:16px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button id="pw_sync_cancel" class="btn" type="button">Cancel</button>
+        <button id="pw_sync_submit" class="btn" type="button">Set Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Configuration modal logic (index page)
+(function initCfg(){
+  function openCfg(){
+    const d = document.getElementById('cfg_backdrop');
+    if(!d) return;
+    d.style.display='flex';
+    document.getElementById('cfg_password').value = '';
+    const err = document.getElementById('cfg_error');
+    if(err){ err.style.display='none'; err.textContent=''; }
+    const hint = document.getElementById('browse_hint');
+    if(hint) hint.style.display = 'block';
+    const MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+    fetch('/api/config').then(r=>r.json()).then(cfg=>{
+      if(cfg){
+        const inp = document.getElementById('cfg_password'); if(inp) inp.value = MASK;
+        if(cfg.ws_port) document.getElementById('cfg_ws_port').value = String(cfg.ws_port);
+        if(cfg.concurrency) document.getElementById('cfg_concurrency').value = String(cfg.concurrency);
+        if(cfg.logos_path) document.getElementById('cfg_logos_path').value = cfg.logos_path;
+        if(cfg.firmware_path) document.getElementById('cfg_firmware_path').value = cfg.firmware_path;
+        if(cfg.imagestream_path) document.getElementById('cfg_imagestream_path').value = cfg.imagestream_path;
+      }
+    }).catch(()=>{});
+    const toggle = document.getElementById('cfg_pw_toggle'); const inp = document.getElementById('cfg_password');
+    if(toggle && inp){ toggle.onclick = async function(){ const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; if(show){ try{ const cfg2 = await (await fetch('/api/config?include_password=1',{cache:'no-store'})).json(); if(cfg2 && typeof cfg2.password === 'string') inp.value = cfg2.password; }catch(e){} } } }
+  }
+
+  const g = document.getElementById('header_gear');
+  if(g) g.addEventListener('click', openCfg);
+
+  const closeBtn = document.getElementById('cfg_close');
+  if(closeBtn) closeBtn.addEventListener('click', ()=>{
+    document.getElementById('cfg_backdrop').style.display='none';
+    const h=document.getElementById('browse_hint');
+    if(h) h.style.display='none';
+  });
+
+  const back = document.getElementById('cfg_backdrop');
+  if(back) back.addEventListener('click', function(e){
+    if(e.target===this){
+      this.style.display='none';
+      const h=document.getElementById('browse_hint');
+      if(h) h.style.display='none';
+    }
+  });
+
+  const saveBtn = document.getElementById('cfg_save');
+  if(saveBtn) saveBtn.addEventListener('click', function(){
+    const payload = {
+      username:'admin',
+      password: document.getElementById('cfg_password').value,
+      ws_port: parseInt(document.getElementById('cfg_ws_port').value || '80', 10),
+      concurrency: parseInt(document.getElementById('cfg_concurrency').value || '6', 10),
+      logos_path: document.getElementById('cfg_logos_path').value,
+      firmware_path: document.getElementById('cfg_firmware_path').value,
+      imagestream_path: document.getElementById('cfg_imagestream_path').value
+    };
+    const errDiv = document.getElementById('cfg_error');
+    if(errDiv){ errDiv.style.display='none'; errDiv.textContent=''; }
+    fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(async r=>{
+        if(!r.ok){
+          let j = null;
+          try{ j = await r.json(); }catch(e){}
+          if(errDiv){
+            if(j && j.error === 'invalid_paths' && Array.isArray(j.details)){
+              errDiv.textContent = 'Invalid paths: ' + j.details.map(d=>d.key+': '+d.path).join('; ');
+            }else if(j && j.error){
+              errDiv.textContent = 'Error: ' + (j.error || JSON.stringify(j));
+            }else{
+              errDiv.textContent = 'Save failed';
+            }
+            errDiv.style.display = 'block';
+          }else{
+            alert('Save failed');
+          }
+          return;
+        }
+        try{ await r.json(); }catch(e){}
+        // Update appConfig with saved values
+        appConfig.password = payload.password;
+        appConfig.ws_port = payload.ws_port;
+        appConfig.concurrency = payload.concurrency;
+        const b=document.getElementById('cfg_backdrop');
+        if(b) b.style.display='none';
+        const h=document.getElementById('browse_hint');
+        if(h) h.style.display='none';
+      }).catch(e=>{
+        if(errDiv){ errDiv.textContent = 'Network error: ' + (e && e.message ? e.message : String(e)); errDiv.style.display='block'; }
+      });
+  });
+
+  function openServerFolderBrowser(startPath, targetSelector){
+    const backdrop = document.getElementById('cfg_browser_backdrop');
+    const list = document.getElementById('cfg_browser_list');
+    const pathInput = document.getElementById('cfg_browser_path');
+    const selectBtn = document.getElementById('cfg_browser_select');
+    const upBtn = document.getElementById('cfg_browser_up');
+    if(!backdrop||!list||!pathInput) return;
+    let current = startPath && startPath.trim() ? startPath : '';
+    async function load(p){
+      const url = '/api/list_dir' + (p ? ('?path=' + encodeURIComponent(p)) : '');
+      list.innerHTML = 'Loading...';
+      try{
+        const r = await fetch(url);
+        const j = await r.json();
+        if(!j.ok){ list.innerHTML = '<div class="small">Error: '+(j.error||'')+'</div>'; return; }
+        current = j.path || p || '';
+        pathInput.value = current;
+        list.innerHTML = '';
+        (j.entries||[]).forEach(ent=>{
+          if(!ent.is_dir) return;
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.style.justifyContent = 'space-between';
+          row.style.padding = '6px 8px';
+          row.style.cursor = 'pointer';
+          row.textContent = ent.name;
+          row.onclick = ()=>{
+            let base = current || '';
+            base = base.replace(/\\\\/g, '/');
+            const next = base.endsWith('/') || base === '' ? (base + ent.name) : (base + '/' + ent.name);
+            load(next);
+          };
+          list.appendChild(row);
+        });
+      }catch(e){ list.innerHTML = '<div class="small">Error: '+String(e)+'</div>'; }
+    }
+    upBtn.onclick = ()=>{
+      try{
+        if(!current) return;
+        let tmp = String(current).replace(/\\\\/g, '/');
+        if(tmp === '/' || tmp === '') return;
+        const parts = tmp.split('/').filter(p=>p.length>0);
+        if(parts.length <= 1){
+          load('/');
+          return;
+        }
+        parts.pop();
+        const parent = '/' + parts.join('/');
+        load(parent);
+      }catch(e){}
+    };
+    document.getElementById('cfg_browser_cancel').onclick = ()=>{ backdrop.style.display='none'; };
+    selectBtn.onclick = ()=>{
+      const target = document.querySelector(targetSelector);
+      if(target){ target.value = pathInput.value; }
+      backdrop.style.display='none';
+    };
+    backdrop.style.display='flex';
+    load(current || '');
+  }
+
+  const fbtn = document.getElementById('cfg_firmware_browse');
+  if(fbtn) fbtn.addEventListener('click', ()=> openServerFolderBrowser(document.getElementById('cfg_firmware_path').value, '#cfg_firmware_path'));
+  const ibtn = document.getElementById('cfg_imagestream_browse');
+  if(ibtn) ibtn.addEventListener('click', ()=> openServerFolderBrowser(document.getElementById('cfg_imagestream_path').value, '#cfg_imagestream_path'));
+  const lbtn = document.getElementById('cfg_logos_browse');
+  if(lbtn) lbtn.addEventListener('click', ()=> openServerFolderBrowser(document.getElementById('cfg_logos_path').value, '#cfg_logos_path'));
+})();
+</script>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const api = (p, opt={}) => fetch(p, opt).then(r => r.json());
+const producerRpc = (ip, method, params={}) => fetch('/api/producer/jsonrpc', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({ ip, method, params })
+}).then(r => r.json());
+
+// ---------------- Status persistence ----------------
+const STATUS_KEY = "status_map_v1";
+const StatusStore = {
+  load(){ try { return JSON.parse(localStorage.getItem(STATUS_KEY) || "{}"); } catch { return {}; } },
+  save(m){ try { localStorage.setItem(STATUS_KEY, JSON.stringify(m||{})); } catch {} },
+  set(ip, payload){
+    const m=this.load();
+    m[ip]=Object.assign({t:Date.now()}, payload||{});
+    this.save(m);
+  },
+  get(ip){ return (this.load())[ip] || null; },
+  clear(ip){ const m=this.load(); delete m[ip]; this.save(m); },
+  clearAll(){ this.save({}); },
+
+  // NEW: success lock helpers
+  lockSuccess(ip, ms=30000){
+    const m=this.load();
+    const cur = m[ip] || {};
+    cur.lock_until = Date.now() + ms;
+    cur.text = cur.text || "upgrade successful";
+    cur.cls  = cur.cls  || "s-idle";   // green chip, same as your success color
+    m[ip] = cur;
+    this.save(m);
+  },
+  isLocked(ip){
+    const st = this.get(ip);
+    return !!(st && st.lock_until && Date.now() < st.lock_until);
+  }
+};
+
+
+
+// ------- always fetch from backend, never use localStorage cache -------
+function loadLocal(){ return []; }
+function saveLocal(rows){}
+function tolerantRows(payload){ if(!payload) return []; if(Array.isArray(payload)) return payload; if(payload.units) return payload.units; if(payload.rows) return payload.rows; if(payload.value && Array.isArray(payload.value)) return payload.value; return []; }
+function byIP(rows){ const m=new Map(); (rows||[]).forEach(r=> r&&r.ip && m.set(r.ip, r)); return m; }
+function mergeByIP(a,b){ const m=byIP(a); (b||[]).forEach(r=>{ if(!r||!r.ip) return; const prev=m.get(r.ip)||{}; m.set(r.ip, Object.assign({}, prev, r)); }); return Array.from(m.values()); }
+
+// On page load, clear any localStorage cache to avoid stale units
+try { localStorage.removeItem("units_cache"); } catch {}
+
+// ------- table model / sorting -------
+let units = [];
+const unitMap = new Map();
+let sortKey = "ip";
+let sortDir = "asc";
+
+// Global config loaded from backend
+let appConfig = { password: 'password', ws_port: 80, concurrency: 6 };
+
+function classifyRole(u){
+  const t=(u.type||u.role||"").toLowerCase();
+  if(t.includes("encoder")) return "Encoder";
+  if(t.includes("decoder")) return "Decoder";
+  if(t.includes("switcher")) return "Switcher";
+  const m=(u.model||"").toLowerCase();
+  if(m.includes("at-ome-cs31")) return "Switcher";
+  if(m.startsWith("at-luma-e") || m.startsWith("at-omni-e")) return "Encoder";
+  if(m.startsWith("at-luma-d") || m.startsWith("at-omni-d")) return "Decoder";
+  return "";
+}
+
+function roleFromFirmwareName(name){
+  if(!name || name==="Select Firmware") return "";
+  const n = name.toLowerCase();
+  if(n.includes("at-ome-cs31") || n.includes("cs31") || n.includes("switcher")) return "Switcher";
+  if(n.includes("decoder") || /\b(d\d{4}|-d\d{4}|121|122|521)\b/.test(n)) return "Decoder";
+  if(n.includes("encoder") || /\b(e\d{4}|-e\d{4}|111|112|512)\b/.test(n)) return "Encoder";
+  if(n.includes("-d4") || n.includes(" d4")) return "Decoder";
+  if(n.includes("-e4") || n.includes(" e4")) return "Encoder";
+  return "";
+}
+
+function ipToNum(ip){
+  const parts=(ip||'').split('.').map(x=>parseInt(x,10));
+  if(parts.length!==4 || parts.some(n=>isNaN(n))) return -1;
+  return ((parts[0]<<24)>>>0) + (parts[1]<<16) + (parts[2]<<8) + parts[3];
+}
+
+function getDisplayList(){
+  const selected = $("#files").value || "Select Firmware";
+  const wantRole = roleFromFirmwareName(selected);
+  let list = (units||[]).map(u => ({...u, typeLabel: classifyRole(u)}));
+  if(wantRole && wantRole !== '' && list.length) {
+    list = list.filter(u => {
+      if (u.typeLabel === wantRole) return true;
+      const model = (u.model || '').toLowerCase();
+      const typeRole = `${(u.type||'')} ${(u.role||'')}`.toLowerCase();
+      // Keep CS31/switchers visible in device list even when firmware role filter is active
+      return typeRole.includes('switcher') || model.includes('at-ome-cs31');
+    });
+  }
+
+  const dir = (sortDir === "asc") ? 1 : -1;
+  list.sort((a,b)=>{
+    let av, bv;
+    switch(sortKey){
+      case "ip": av=ipToNum(a.ip); bv=ipToNum(b.ip); if(av!==bv) return (av-bv)*dir; break;
+      case "mac": av=(a.mac||"").toLowerCase(); bv=(b.mac||"").toLowerCase(); if(av!==bv) return av<bv?-1*dir:1*dir; break;
+      case "hostname": av=(a.hostname||"").toLowerCase(); bv=(b.hostname||"").toLowerCase(); if(av!==bv) return av<bv?-1*dir:1*dir; break;
+      case "type": av=(a.typeLabel||""); bv=(b.typeLabel||""); if(av!==bv) return av<bv?-1*dir:1*dir; break;
+      case "model": av=(a.model||"").toLowerCase(); bv=(b.model||"").toLowerCase(); if(av!==bv) return av<bv?-1*dir:1*dir; break;
+      case "version": av=(a.version||"").toLowerCase(); bv=(b.version||"").toLowerCase(); if(av!==bv) return av<bv?-1*dir:1*dir; break;
+    }
+    return (ipToNum(a.ip)-ipToNum(b.ip))*dir;
+  });
+  return list;
+}
+
+function statusBadge(text, cls, spin=false){
+  const span=document.createElement('span');
+  span.className=`status ${cls}`;
+  const t=document.createElement('span'); t.textContent=text||""; span.appendChild(t);
+  if(spin){ const s=document.createElement('span'); s.className='spinner'; s.style.width='12px'; s.style.height='12px'; s.style.borderWidth='2px'; span.appendChild(s); }
+  return span;
+}
+
+// Persisting setStatus
+function setStatus(ip,text,cls,spin=false){
+  const row=unitMap.get(ip);
+  if(row){
+    const td=row.statusCell; td.innerHTML=""; td.appendChild(statusBadge(text,cls,spin));
+  }
+  const active = ["s-sending","s-updating","s-rebooting","s-resetting"].includes(cls);
+  StatusStore.set(ip, { text, cls, spin: !!spin, in_progress: active });
+}
+
+function applyPersistedStatuses(){
+  const map = StatusStore.load();
+  for(const [ip, st] of Object.entries(map)){
+    const row = unitMap.get(ip);
+    if(!row) continue;
+    const td=row.statusCell; td.innerHTML="";
+    td.appendChild(statusBadge(st.text || "idle", st.cls || "s-idle-unchanged", !!st.spin));
+  }
+}
+
+function renderRows(list){
+  const tb=$("#tbody"); tb.innerHTML="";
+  unitMap.clear();
+  list.forEach(u=>{
+    const tr=document.createElement('tr'); tr.dataset.ip=u.ip;
+    const chk=document.createElement('input'); chk.type="checkbox"; chk.className="sel"; chk.id=`sel_${u.ip.replace(/\./g,'_')}`;
+    const tdSel=document.createElement('td'); tdSel.appendChild(chk);
+
+    const tdIP=document.createElement('td'); const a=document.createElement('a');
+    a.textContent=u.ip||""; a.href="#"; a.className="ip";
+    a.addEventListener('click',(e)=>{e.preventDefault(); const port=appConfig.ws_port; const scheme=(port===443)?'https':'http'; window.open(`${scheme}://${u.ip}/#/info`,'_blank');});
+    tdIP.appendChild(a);
+
+    const tdMAC=document.createElement('td'); tdMAC.textContent=u.mac||"";
+    const tdHost=document.createElement('td');
+    const roleLbl = classifyRole(u) || '';
+    const isEncoder = /^enc/i.test(roleLbl) || ((u.model||'').toLowerCase().startsWith('at-luma-e') || (u.model||'').toLowerCase().startsWith('at-omni-e'));
+    
+    // Add editable hostname input
+    const hostnameInput = document.createElement('input');
+    hostnameInput.type = 'text';
+    hostnameInput.className = 'hostname-input';
+    hostnameInput.value = u.hostname || "";
+    hostnameInput.style.cssText = 'width:140px;padding:2px;margin-right:4px;';
+    hostnameInput.title = 'Click to edit hostname';
+    hostnameInput.dataset.ip = u.ip || '';
+    
+    hostnameInput.addEventListener('change', async (e) => {
+      const newHostname = e.target.value.trim();
+      const oldHostname = u.hostname || '';
+      
+      if (newHostname === oldHostname) return; // No change
+      
+      if (!newHostname) {
+        alert('Hostname cannot be empty');
+        e.target.value = oldHostname;
+        return;
+      }
+      
+      try {
+        const result = await setHostname(u.ip, newHostname);
+        if (!result.ok) {
+          alert('Failed to set hostname: ' + result.error);
+          e.target.value = oldHostname;
+        } else {
+          u.hostname = result.hostname;
+          // Update in units list
+          const unitIndex = units.findIndex(unit => unit.ip === u.ip);
+          if (unitIndex !== -1) units[unitIndex].hostname = result.hostname;
+        }
+      } catch (err) {
+        alert('Error setting hostname: ' + err.message);
+        e.target.value = oldHostname;
+      }
+    });
+    
+    tdHost.appendChild(hostnameInput);
+    
+    // Create separate streamname cell
+    const tdStreamname = document.createElement('td');
+    let streamnameInput = null;
+    if (isEncoder) {
+      streamnameInput = document.createElement('input');
+      streamnameInput.type = 'text';
+      streamnameInput.className = 'streamname-input';
+      streamnameInput.value = (u.enc?.video?.streamname || u.enc?.audio?.streamname) || "";
+      streamnameInput.style.cssText = 'width:140px;padding:2px;margin-right:4px;';
+      streamnameInput.title = 'Click to edit streamname';
+      streamnameInput.dataset.ip = u.ip || '';
+      
+      streamnameInput.addEventListener('change', async (e) => {
+        const newStreamname = e.target.value.trim();
+        const oldStreamname = (u.enc?.video?.streamname || u.enc?.audio?.streamname) || '';
+        
+        if (newStreamname === oldStreamname) return; // No change
+        
+        if (!newStreamname) {
+          alert('Streamname cannot be empty');
+          e.target.value = oldStreamname;
+          return;
+        }
+        
+        try {
+          const result = await setStreamname(u.ip, newStreamname);
+          if (!result.ok) {
+            alert('Failed to set streamname: ' + result.error);
+            e.target.value = oldStreamname;
+          } else {
+            // Update data structures
+            if (!u.enc) u.enc = {};
+            if (!u.enc.video) u.enc.video = {};
+            if (!u.enc.audio) u.enc.audio = {};
+            u.enc.video.streamname = result.streamname;
+            u.enc.audio.streamname = result.streamname;
+            
+            const unitIndex = units.findIndex(unit => unit.ip === u.ip);
+            if (unitIndex !== -1) {
+              if (!units[unitIndex].enc) units[unitIndex].enc = {};
+              if (!units[unitIndex].enc.video) units[unitIndex].enc.video = {};
+              if (!units[unitIndex].enc.audio) units[unitIndex].enc.audio = {};
+              units[unitIndex].enc.video.streamname = result.streamname;
+              units[unitIndex].enc.audio.streamname = result.streamname;
+            }
+          }
+        } catch (err) {
+          alert('Error setting streamname: ' + err.message);
+          e.target.value = oldStreamname;
+        }
+      });
+      
+      tdStreamname.appendChild(streamnameInput);
+    }
+    
+    // Add live LED for encoders (initially hidden)
+    let streamLed = null;
+    if (isEncoder) {
+      streamLed = document.createElement('div');
+      streamLed.style.cssText = 'display:none;width:10px;height:10px;border-radius:50%;background:#222;border:1px solid #444;margin-left:8px;display:inline-block;';
+      streamLed.className = 'stream-led';
+      tdHost.appendChild(streamLed);
+    }
+    
+    const tdDanteCheck=document.createElement('td');
+    tdDanteCheck.className = 'col-dante';
+    if (isEncoder) {
+      const danteChk = document.createElement('input');
+      danteChk.type = 'checkbox';
+      danteChk.checked = !!u.dante_enabled;
+      danteChk.dataset.ip = u.ip || '';
+      danteChk.className = 'dante-check';
+      danteChk.style.cursor = 'pointer';
+      danteChk.addEventListener('change', async (e) => {
+        const enabled = e.target.checked;
+        try {
+          const res = await fetch('/api/set_dante_power', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ip: u.ip, enabled })
+          });
+          const j = await res.json();
+          if (!j.ok) {
+            alert('Failed to set Dante power: ' + (j.error || ''));
+            e.target.checked = !enabled;
+          } else {
+            e.target.checked = j.dante_enabled;
+          }
+        } catch (err) {
+          alert('Error setting Dante power: ' + err.message);
+          e.target.checked = !enabled;
+        }
+      });
+      tdDanteCheck.appendChild(danteChk);
+    }
+    
+    const tdDanteName=document.createElement('td');
+    tdDanteName.className = 'col-dante-name';
+    tdDanteName.textContent = isEncoder ? (u.dante_name || "") : "";
+    const tdDanteIp=document.createElement('td');
+    tdDanteIp.className = 'col-dante-ip';
+    tdDanteIp.textContent = isEncoder ? (u.dante_ip || "") : "";
+    const isDecoder = roleLbl === "Decoder" || (u.model||'').toLowerCase().startsWith('hw-luma-d') || (u.model||'').toLowerCase().startsWith('at-luma-d');
+    
+    const tdEdidResolution = document.createElement('td');
+    tdEdidResolution.className = 'col-edid-resolution';
+    if (isEncoder) {
+      const edidSelect = document.createElement('select');
+      edidSelect.style.cssText = 'width:100%;padding:2px;';
+      edidSelect.dataset.ip = u.ip || '';
+      const edidOptions = [
+        { mode: 1, label: '4K60' },
+        { mode: 2, label: '1080P' },
+        { mode: 3, label: '720P' },
+        { mode: 4, label: 'User' }
+      ];
+      edidOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = String(opt.mode);
+        option.textContent = opt.label;
+        edidSelect.appendChild(option);
+      });
+      const currentMode = Number(u.edid_mode || 1);
+      edidSelect.value = String(currentMode);
+      edidSelect.addEventListener('change', async (e) => {
+        const newMode = Number(e.target.value);
+        const prevMode = Number(u.edid_mode || 1);
+        try {
+          const source = (u.edid_source && String(u.edid_source).trim()) ? String(u.edid_source) : 'hdmiin';
+          const resp = await producerRpc(u.ip, 'EdidInput.Set', { source, edidmode: newMode });
+          if (!resp || resp.error || !resp.result) {
+            alert('Failed to set EDID mode: ' + (resp?.error?.message || 'Unknown error'));
+            e.target.value = String(prevMode);
+            return;
+          }
+          const appliedMode = Number(resp.result.edidmode || newMode);
+          u.edid_mode = appliedMode;
+          u.edid_source = resp.result.source || source;
+          const rowInUnits = units.find(unit => unit.ip === u.ip);
+          if (rowInUnits) {
+            rowInUnits.edid_mode = appliedMode;
+            rowInUnits.edid_source = u.edid_source;
+            rowInUnits.edid_resolution = edidOptions.find(o => o.mode === appliedMode)?.label || '';
+          }
+        } catch (err) {
+          alert('Error setting EDID mode: ' + err.message);
+          e.target.value = String(prevMode);
+        }
+      });
+      tdEdidResolution.appendChild(edidSelect);
+    } else if (isDecoder) {
+      const timingSelect = document.createElement('select');
+      timingSelect.style.cssText = 'width:100%;padding:2px;';
+      timingSelect.dataset.ip = u.ip || '';
+      const currentTiming = u.video_out_timing || u.edid_resolution || '';
+      const supportedList = Array.isArray(u.video_out_supported_timing_list) ? u.video_out_supported_timing_list : [];
+      const specialOptions = [
+        { value: 'auto', label: 'Auto' },
+        { value: 'followinput', label: 'Input' }
+      ];
+      const seen = new Set();
+      const addTimingOption = (value, label) => {
+        if (!value) return;
+        const key = String(value).toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        const option = document.createElement('option');
+        option.value = String(value);
+        option.textContent = String(label || value);
+        timingSelect.appendChild(option);
+      };
+
+      specialOptions.forEach(opt => addTimingOption(opt.value, opt.label));
+      if (supportedList.length) {
+        supportedList.forEach(timing => addTimingOption(timing, timing));
+      } else if (currentTiming) {
+        const currentLabel = String(currentTiming).toLowerCase() === 'followinput'
+          ? 'Input'
+          : (String(currentTiming).toLowerCase() === 'auto' ? 'Auto' : currentTiming);
+        addTimingOption(currentTiming, currentLabel);
+      }
+
+      if (currentTiming) {
+        const currentKey = String(currentTiming).toLowerCase();
+        const match = Array.from(timingSelect.options).find(opt => String(opt.value).toLowerCase() === currentKey);
+        if (match) timingSelect.value = match.value;
+      }
+
+      if (!timingSelect.options.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = '(no timing data)';
+        timingSelect.appendChild(option);
+        timingSelect.value = '';
+        timingSelect.disabled = true;
+      }
+      timingSelect.addEventListener('change', async (e) => {
+        const newTiming = e.target.value;
+        const prevTiming = u.video_out_timing || timingSelect.value || '';
+        try {
+          const resp = await producerRpc(u.ip, 'VideoOutTiming.Set', { timing: newTiming });
+          if (!resp || resp.error || !resp.result) {
+            alert('Failed to set decoder output timing: ' + (resp?.error?.message || 'Unknown error'));
+            e.target.value = prevTiming;
+            return;
+          }
+          const appliedTiming = resp.result.timing || newTiming;
+          u.video_out_timing = appliedTiming;
+          u.edid_resolution = appliedTiming;
+          const rowInUnits = units.find(unit => unit.ip === u.ip);
+          if (rowInUnits) {
+            rowInUnits.video_out_timing = appliedTiming;
+            rowInUnits.edid_resolution = appliedTiming;
+          }
+        } catch (err) {
+          alert('Error setting decoder output timing: ' + err.message);
+          e.target.value = prevTiming;
+        }
+      });
+      tdEdidResolution.appendChild(timingSelect);
+    } else {
+      tdEdidResolution.textContent = "";
+    }
+    
+    // HDCP dropdown
+    const tdHdcp = document.createElement('td');
+    if (isEncoder || isDecoder) {
+      const hdcpSelect = document.createElement('select');
+      hdcpSelect.className = 'hdcp-select';
+      hdcpSelect.style.cssText = 'width:100%;padding:2px;';
+      hdcpSelect.dataset.ip = u.ip || '';
+      hdcpSelect.dataset.role = roleLbl;
+      
+      // Encoder options: NONE, HDCP1.4, HDCP2.2
+      // Decoder options: HDCP2.2, INPUT, HDCP1.4
+      const options = isEncoder ? ['NONE', 'HDCP1.4', 'HDCP2.2'] : ['HDCP2.2', 'INPUT', 'HDCP1.4'];
+      options.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        hdcpSelect.appendChild(option);
+      });
+      
+      hdcpSelect.value = u.hdcp || '';
+      
+      hdcpSelect.addEventListener('change', async (e) => {
+        const hdcpValue = e.target.value;
+        try {
+          const res = await fetch('/api/set_hdcp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ ip: u.ip, hdcp: hdcpValue, role: roleLbl })
+          });
+          const j = await res.json();
+          if (!j.ok) {
+            alert('Failed to set HDCP: ' + (j.error || ''));
+          } else {
+            e.target.value = j.hdcp || hdcpValue;
+          }
+        } catch (err) {
+          alert('Error setting HDCP: ' + err.message);
+        }
+      });
+      
+      tdHdcp.appendChild(hdcpSelect);
+    }
+    
+    const tdType=document.createElement('td'); tdType.textContent=roleLbl||"Unknown";
+    const tdModel=document.createElement('td'); 
+    tdModel.className = 'col-model';
+    tdModel.textContent=u.model||"";
+    const tdVer=document.createElement('td'); tdVer.textContent=u.version||u.firmware||"";
+    const tdStatus=document.createElement('td');
+    // Blink button
+    const tdBlink=document.createElement('td');
+    const blinkBtn=document.createElement('button');
+    blinkBtn.textContent='💡';
+    blinkBtn.className='btn-blink';
+    blinkBtn.title='Blink front panel LED';
+    blinkBtn.dataset.ip=u.ip||'';
+    blinkBtn.dataset.model=(u.model||'').toLowerCase();
+    tdBlink.appendChild(blinkBtn);
+    // Preview column (no per-element handlers; we use delegated listeners)
+    const tdPreview = document.createElement('td');
+    const previewLink = document.createElement('a');
+    const enc = /^enc/i.test(roleLbl) || ((u.model||'').toLowerCase().startsWith('at-luma-e') || (u.model||'').toLowerCase().startsWith('at-omni-e'));
+    const isSwitcher = roleLbl === 'Switcher' || (u.model||'').toLowerCase().includes('at-ome-cs31');
+    const url = isSwitcher ? (`http://${u.ip}/stream?t=${Math.random()}`) : (enc ? (`http://${u.ip}/stream?resolution=320x180&fps=15&bitrate=128`) : (`http://${u.ip}/thumbnail/thumbnail1.jpg`));
+    previewLink.href = url;
+    previewLink.className = 'ip preview-link';
+    previewLink.textContent = 'Preview';
+    previewLink.dataset.ip = u.ip||'';
+    previewLink.dataset.role = roleLbl;
+    previewLink.dataset.model = u.model||'';
+    previewLink.dataset.typeLabel = roleLbl;
+    tdPreview.appendChild(previewLink);
+     tdStatus.innerHTML='<span class="status s-idle-unchanged">idle</span>';
+
+    const row=[tdSel,tdIP,tdMAC,tdHost,tdStreamname,tdDanteCheck,tdDanteName,tdDanteIp,tdEdidResolution,tdType,tdModel,tdVer,tdHdcp,tdStatus,tdBlink,tdPreview];
+    const trFrag=document.createDocumentFragment(); row.forEach(td=>trFrag.appendChild(td));
+    tr.appendChild(trFrag); tb.appendChild(tr);
+
+    unitMap.set(u.ip,{...u,statusCell:tdStatus,versionCell:tdVer,hostCell:tdHost,streamnameCell:tdStreamname,macCell:tdMAC,streamLed:streamLed,danteCheckCell:tdDanteCheck,hdcpCell:tdHdcp});
+  });
+  applyPersistedStatuses();
+}
+
+function updateTotals(){
+  const selected = $("#files").value || "Select Firmware";
+  const wantRole = roleFromFirmwareName(selected);
+  let list = (units||[]).map(u=>({...u,typeLabel:classifyRole(u)})).filter(u=>u.typeLabel);
+  if(wantRole) {
+    list = list.filter(u => {
+      if (u.typeLabel === wantRole) return true;
+      const model = (u.model || '').toLowerCase();
+      const typeRole = `${(u.type||'')} ${(u.role||'')}`.toLowerCase();
+      return typeRole.includes('switcher') || model.includes('at-ome-cs31');
+    });
+  }
+  let enc=0, dec=0, swt=0;
+  for(const u of list){ 
+    if(u.typeLabel==="Encoder") enc++; 
+    else if(u.typeLabel==="Decoder") dec++; 
+    else if(u.typeLabel==="Switcher") swt++;
+  }
+  const el=$("#scan_status"); 
+  if(el) el.textContent=`Units discovered: ${list.length} — Encoders: ${enc}, Decoders: ${dec}, Switchers: ${swt}`;
+}
+
+// Poll encoder RTMP status
+let rtmpPollInterval = null;
+
+async function pollEncoderRtmpStatus() {
+  // Collect all encoders that need polling
+  const encoderEntries = Array.from(unitMap.entries())
+    .filter(([ip, unit]) => unit.streamLed);
+  
+  // Poll all encoders in parallel for better performance
+  const pollPromises = encoderEntries.map(async ([ip, unit]) => {
+    try {
+      // First check if RTMP is enabled
+      const rtmpResp = await fetch('/api/producer/jsonrpc', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ip, method: "Rtmp.Get", params: {} })
+      });
+      
+      const rtmpResult = await rtmpResp.json();
+      if (!rtmpResult || !rtmpResult.result || rtmpResult.result.enable !== true) {
+        // RTMP not enabled, hide LED
+        updateStreamLed(unit.streamLed, false);
+        return;
+      }
+      
+      // RTMP is enabled, check actual run status
+      const statusResp = await fetch('/api/producer/jsonrpc', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ip, method: "RtmpRunStatus.Get", params: {} })
+      });
+      
+      const statusResult = await statusResp.json();
+      
+      // Validate that we got a proper RtmpRunStatus response
+      const isValidStatus = statusResult && 
+        statusResult.result && 
+        statusResult.result.hasOwnProperty('runstatus') && 
+        typeof statusResult.result.runstatus === 'string';
+      
+      if (isValidStatus) {
+        const isLive = statusResult.result.runstatus.toLowerCase() === 'active';
+        updateStreamLed(unit.streamLed, isLive);
+      }
+      // If invalid response, don't update (preserve previous state)
+      
+    } catch(e) {
+      // Silently fail for individual units, preserve previous state
+    }
+  });
+  
+  // Wait for all polls to complete (using allSettled to allow individual failures)
+  await Promise.allSettled(pollPromises);
+}
+
+function updateStreamLed(led, isLive) {
+  if (!led) return;
+  if (isLive) {
+    led.style.display = 'inline-block';
+    led.style.background = '#28a745'; // Green when live
+    led.style.boxShadow = '0 0 8px rgba(40,167,69,0.8)';
+  } else {
+    led.style.display = 'none'; // Hide when not streaming
+  }
+}
+
+function startRtmpPolling() {
+  if (rtmpPollInterval) clearInterval(rtmpPollInterval);
+  pollEncoderRtmpStatus(); // Poll immediately
+  rtmpPollInterval = setInterval(pollEncoderRtmpStatus, 3000); // Then every 3 seconds
+}
+
+function stopRtmpPolling() {
+  if (rtmpPollInterval) {
+    clearInterval(rtmpPollInterval);
+    rtmpPollInterval = null;
+  }
+}
+
+// Poll encoder RTMP status (END)
+
+// ------- files (.tar.gz only) -------
+async function refreshFiles(){
+  const sel=$("#files");
+  try{
+    const res=await api("/api/files");
+    const names = Array.from(new Set(
+      (res.files||[])
+        .map(f => (typeof f==='string'?f:(f.name||'')).trim())
+        .filter(n => n && n.toLowerCase().endsWith('.tar.gz'))
+    )).sort((a,b) => a.localeCompare(b));
+    sel.innerHTML="";
+    const first=document.createElement("option"); first.value="Select Firmware"; first.textContent="Select Firmware"; sel.appendChild(first);
+    names.forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o); });
+  }catch(e){
+    sel.innerHTML=`<option>Select Firmware</option>`;
+  }
+  rerenderFiltered();
+}
+
+// -------- helper to clean adapter label text ----------
+function cleanAdapterName(name){
+  if(!name) return name;
+  // remove leading "Ethernet adapter " or "Ethernet Adapter " (case-insensitive)
+  return name.replace(/^\s*ethernet\s+adapter\s+/i, '').replace(/\s{2,}/g,' ').trim();
+}
+
+// ------- (NEW) precise re-scan to persist to disk/UI -------
+async function rescanIPs(ips){
+  if(!ips || !ips.length) return;
+  const targets = ips.join(",");
+  try{
+    const resp = await fetch('/api/scan', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({targets})});
+    const data = await resp.json();
+    const rows = data.units || data.rows || [];
+    units = mergeByIP(units, rows);
+    saveLocal(units);
+    rerenderFiltered();
+    updateTotals();
+  }catch(e){
+    console.warn("rescanIPs error", e);
+  }
+}
+
+// ------- scan & cache -------
+let scanAbortController = null;
+
+async function scan(){
+  const text=$("#targets").value||"".trim();
+  const chosen=$("#adapters").value||"".trim();
+  const targets=text||chosen;
+  const el=$("#scan_status");
+  console.log("[SCAN] Starting scan with targets:", targets);
+  if(!targets){ if(el) el.textContent="no targets"; return; }
+  
+  // Create new AbortController for this scan
+  scanAbortController = new AbortController();
+  
+  el.innerHTML=`scanning <span class="spinner"></span>`;
+  $("#scan").disabled = true;
+  $("#stop_scan").style.display = "inline-block";
+  $("#stop_scan").style.background = "#f44336"; // Red while scanning
+  stopRtmpPolling(); // Clear any previous polling interval
+  console.log("[SCAN] Sending POST to /api/scan...");
+  try{
+    const resp = await fetch('/api/scan', {
+      method:'POST', 
+      headers:{'Content-Type':'application/json'}, 
+      body:JSON.stringify({targets}),
+      signal: scanAbortController.signal
+    });
+    console.log("[SCAN] Response received, status:", resp.status);
+    const data = await resp.json();
+    console.log("[SCAN] Response data:", data);
+    const rows = data.units || data.rows || [];
+    const errors = data.errors || [];
+    console.log("[SCAN] Units:", rows.length, "Errors:", errors.length);
+    units = mergeByIP(units, rows);
+    saveLocal(units);
+    rerenderFiltered();
+    updateTotals();
+    startRtmpPolling(); // Start polling for encoder RTMP status
+    
+    let statusMsg = `Scan done: ${rows.length} — duration ${data.duration||0}s`;
+    
+    // Check for units with missing critical fields (likely auth failures)
+    const unitsWithMissingData = rows.filter(u => {
+      const role = (u.role || u.type || '').toLowerCase();
+      const hasEnc = u.enc && typeof u.enc === 'object' && Object.keys(u.enc).length > 0;
+      const hasDec = u.dec && typeof u.dec === 'object' && Object.keys(u.dec).length > 0;
+      const hasHostname = u.hostname && u.hostname.trim() !== '';
+      
+      if(role === 'encoder') {
+        // Encoders should have enc object with data, should have a streamname
+        const hasStreamname = u.enc && u.enc.streamname && u.enc.streamname.trim() !== '';
+        const hasDanteInfo = u.enc && u.enc.dante_name;
+        // Only flag if enc object is missing or nearly empty
+        return !hasEnc || (hasEnc && Object.keys(u.enc).length === 0);
+      } else if(role === 'decoder') {
+        // Decoders should have hostname, should have dec object with HDCP data
+        const hasHdcp = u.dec && u.dec.hdcp;
+        // Only flag if hostname is completely missing AND dec object is missing/empty
+        return (!hasHostname && (!hasDec || (hasDec && Object.keys(u.dec).length === 0)));
+      }
+      return false;
+    });
+    
+    if(errors.length > 0 || unitsWithMissingData.length > 0){
+      const totalErrors = errors.length + unitsWithMissingData.length;
+      statusMsg += ` (${totalErrors} auth failures)`;
+      // Display explicit auth errors
+      const errorList = errors.map(e => `<div style="color:#f44336; margin-top:4px;">⚠️ ${e.ip}: ${e.error}</div>`).join('');
+      // Display units with missing data (implicit auth failures) 
+      const missingDataList = unitsWithMissingData.map(u => {
+        return `<div style="color:#ff9800; margin-top:4px;">⚠️ ${u.ip}: Check Password</div>`;
+      }).join('');
+      el.innerHTML = statusMsg + errorList + missingDataList;
+    } else {
+      el.textContent = statusMsg;
+    }
+  }catch(e){
+    console.error("[SCAN] Error:", e);
+    if(e.name === 'AbortError'){
+      el.textContent = 'Scan cancelled';
+    } else {
+      el.textContent = 'scan error: ' + (e && e.message ? e.message : String(e));
+    }
+  }finally{
+    $("#scan").disabled = false;
+    $("#stop_scan").style.display = "none";
+    $("#stop_scan").style.background = "#2196F3"; // Reset to blue
+    scanAbortController = null;
+    console.log("[SCAN] Scan complete");
+  }
+}
+
+function stopScan(){
+  if(scanAbortController){
+    scanAbortController.abort();
+    scanAbortController = null;
+  }
+}
+
+async function loadAdapters(){
+  try{
+    const sel=$("#adapters");
+    sel.innerHTML=`<option value="">(loading adapters...)</option>`;
+    const res=await api("/api/adapters");
+    const list=res.adapters||res||[];
+    sel.innerHTML="";
+    if(!list.length){ sel.innerHTML=`<option value="">(no adapters found)</option>`; return; }
+    list.forEach(a=>{
+      const o=document.createElement("option");
+      o.value=a.scan || a.cidr || "";
+      const labelRaw = a.name || a.cidr || a.scan || "";
+      o.textContent = `${cleanAdapterName(labelRaw)}` + (a.scan?` — ${a.scan}`:"");
+      sel.appendChild(o);
+    });
+  }catch(e){
+    $("#adapters").innerHTML=`<option value="">(adapters error)</option>`;
+  }
+}
+
+function rerenderFiltered(){ renderRows(getDisplayList()); }
+
+// ------- connection monitoring -------
+let connectionCheckInterval = null;
+let heartbeatInterval = null;
+let lastSuccessfulHeartbeat = Date.now();
+const CONNECTION_TIMEOUT_MS = 15000; // 15 seconds
+const HEARTBEAT_INTERVAL_MS = 5000; // 5 seconds
+
+function showConnectionBanner() {
+  const banner = $("#connection_banner");
+  if(banner && banner.style.display === 'none') {
+    banner.style.display = 'block';
+    document.body.style.paddingTop = '50px'; // Make room for banner
+  }
+}
+
+function hideConnectionBanner() {
+  const banner = $("#connection_banner");
+  if(banner && banner.style.display === 'block') {
+    banner.style.display = 'none';
+    document.body.style.paddingTop = '0';
+  }
+}
+
+function startConnectionMonitoring() {
+  if(heartbeatInterval) return; // Already started
+  
+  // Send heartbeat pings every 5 seconds
+  heartbeatInterval = setInterval(async () => {
+    try {
+      const response = await fetch('/api/heartbeat', { cache: 'no-store' });
+      if(response.ok) {
+        lastSuccessfulHeartbeat = Date.now();
+        console.log('[ConnectionMonitor] Heartbeat successful, hiding banner');
+        hideConnectionBanner();
+      }
+    } catch(e) {
+      console.log('[ConnectionMonitor] Heartbeat failed:', e.message);
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+  
+  // Check if heartbeat has stalled every 2 seconds
+  if(connectionCheckInterval) return;
+  connectionCheckInterval = setInterval(async () => {
+    const timeSinceLastSuccess = Date.now() - lastSuccessfulHeartbeat;
+    if(timeSinceLastSuccess > CONNECTION_TIMEOUT_MS) {
+      console.log('[ConnectionMonitor] CONNECTION TIMEOUT - showing banner after', CONNECTION_TIMEOUT_MS, 'ms without heartbeat');
+      showConnectionBanner();
+    }
+  }, 2000); // Check every 2 seconds
+}
+
+function stopConnectionMonitoring() {
+  if(heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  if(connectionCheckInterval) {
+    clearInterval(connectionCheckInterval);
+    connectionCheckInterval = null;
+  }
+}
+
+// Heartbeat-based connection monitoring (fetch interceptor no longer needed)
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  // Just pass through - heartbeat is handled separately
+  try {
+    const response = await originalFetch.apply(this, args);
+    return response;
+  } catch(e) {
+    throw e;
+  }
+};
+
+// Start monitoring when page loads
+startConnectionMonitoring();
+let pollTimer = null;
+function isSliderOn(){ return $("#poll_switch").classList.contains("on"); }
+// Track reboot lifecycle per IP so polling doesn't immediately overwrite status
+// Structure: { [ip]: { startedAt:number, sawOffline:boolean, completed:boolean, rebootedAt?:number } }
+const rebootTracker = {};
+// Heartbeat ownership flag for reboot when global slider is off
+let rebootHeartbeatOwned = false;
+// Track consecutive failures per IP for offline detection
+const failureMap = new Map();
+async function tcpProbe(ip){
+  try{
+    const r = await api("/api/tcp_probe",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({ip,timeout_ms:400})});
+    if(r && r.ok) return !!r.reachable;
+  }catch(e){}
+  return false;
+}
+function getVisibleIPs(){
+  return Array.from(document.querySelectorAll("#tbody tr")).map(tr=>tr.dataset.ip).filter(Boolean);
+}
+async function heartbeatOnce(){
+  const now=Date.now();
+  // Always include rebooting units even if poll slider is off
+  const rebootIPs = Object.keys(rebootTracker);
+  const visibleIPs = isSliderOn() ? getVisibleIPs() : [];
+  // Merge lists uniquely
+  const ips = Array.from(new Set([...visibleIPs, ...rebootIPs]));
+  if(!ips.length) return;
+  
+  // Probe all IPs in PARALLEL (not sequential) to avoid timeout delays blocking the loop
+  const probeResults = new Map();
+  const probes = ips
+    .filter(ip => !Upgrade.isActive(ip))
+    .map(async ip => {
+      const ok = await tcpProbe(ip);
+      probeResults.set(ip, ok);
+    });
+  
+  await Promise.all(probes);
+  
+  // Now process results
+  for(const ip of ips){
+    if(Upgrade.isActive(ip)) continue;
+    const ok = probeResults.get(ip);
+    const tracker = rebootTracker[ip];
+
+    // If we are tracking a reboot, implement state machine
+    if(tracker){
+      const elapsed = now - tracker.startedAt;
+      // Observe offline
+      if(!tracker.sawOffline && !ok){
+        tracker.sawOffline = true;
+        setStatus(ip, "rebooting", "s-rebooting", true);
+        failureMap.set(ip, (failureMap.get(ip)||0)+1);
+        continue;
+      }
+      // Transition to rebooted when:
+      //  - we saw offline & now ok OR
+      //  - elapsed exceeds grace (5s) and device reachable (never dropped offline)
+      const grace = 5000;
+      if(ok && (tracker.sawOffline || elapsed >= grace)){
+        if(!tracker.rebootedAt){
+          setStatus(ip, "rebooted", "s-rebooted");
+          tracker.rebootedAt = now;
+          tracker.completed = true;
+          setTimeout(()=>{
+            const row = document.querySelector(`tr[data-ip="${ip}"]`);
+            const stEl = row?.querySelector('.status');
+            if(stEl && stEl.textContent === 'rebooted'){
+              setStatus(ip, "idle", "s-idle-unchanged");
+              delete rebootTracker[ip];
+              // If no more reboots tracked and we owned heartbeat, stop if slider still off
+              if(Object.keys(rebootTracker).length===0 && rebootHeartbeatOwned && !isSliderOn()){
+                enableHeartbeat(false);
+                rebootHeartbeatOwned = false;
+              }
+            }
+          }, 30000);
+        }
+        continue;
+      }
+      // Still in rebooting phase (either reachable too soon or still unreachable)
+      setStatus(ip, "rebooting", "s-rebooting", true);
+      continue;
+    }
+
+    // Normal path (not rebooting)
+    if(isSliderOn()){
+      if(ok){
+        failureMap.set(ip, 0);
+        setStatus(ip, "idle", "s-idle");
+      } else {
+        const n=(failureMap.get(ip)||0)+1; failureMap.set(ip,n);
+        if(n>=2) setStatus(ip, "offline", "s-offline");
+      }
+    }
+    // Note: When polling disabled, heartbeat isn't running, so this path won't execute
+  }
+  // Final cleanup: if all reboots done and we owned heartbeat, stop it if slider off
+  if(Object.keys(rebootTracker).length===0 && rebootHeartbeatOwned && !isSliderOn()){
+    enableHeartbeat(false);
+    rebootHeartbeatOwned = false;
+  }
+}
+function enableHeartbeat(on){
+  if(on){
+    if(pollTimer) return;
+    pollTimer=setInterval(heartbeatOnce,3000);
+    heartbeatOnce();
+  } else {
+    if(pollTimer){ clearInterval(pollTimer); pollTimer=null; }
+  }
+}
+function shouldHeartbeatRun(){
+  // Heartbeat should run if: polling enabled OR tracking any reboots
+  return isSliderOn() || Object.keys(rebootTracker).length > 0;
+}
+
+// ------- hostname utilities -------
+async function setHostname(ip, newHostname) {
+  try {
+    const r = await api("/api/set_hostname", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, hostname: newHostname })
+    });
+    if (r && r.ok) {
+      const name = r.hostname || "";
+      const row = unitMap.get(ip);
+      if (row) {
+        row.hostname = name;
+        const input = row.hostCell?.querySelector('input.hostname-input');
+        if (input) input.value = name || "";
+      }
+      return { ok: true, hostname: name };
+    }
+    return { ok: false, error: r?.error || "Unknown error" };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function pollHostname(ip){
+  try{
+    const r = await api("/api/hostname",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+    if(r && r.ok){
+      const name = r.hostname || "";
+      const row=unitMap.get(ip);
+      if(row){
+        row.hostname = name;
+        const input = row.hostCell?.querySelector('input.hostname-input');
+        if(input) input.value = name || "";
+      }
+      return name;
+    }
+  }catch(e){}
+  return "";
+}
+
+// ------- streamname utilities -------
+async function setStreamname(ip, newStreamname) {
+  try {
+    const r = await api("/api/set_streamname", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, streamname: newStreamname })
+    });
+    if (r && r.ok) {
+      const streamname = r.streamname || "";
+      const row = unitMap.get(ip);
+      if (row) {
+        const input = row.streamnameCell?.querySelector('input.streamname-input');
+        if (input) input.value = streamname || "";
+      }
+      return { ok: true, streamname: streamname };
+    }
+    return { ok: false, error: r?.error || "Unknown error" };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function pollStreamname(ip){
+  try{
+    const r = await api("/api/get_streamname",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+    if(r && r.ok){
+      const streamname = r.streamname || "";
+      const row=unitMap.get(ip);
+      if(row){
+        const input = row.hostCell?.querySelector('input.streamname-input');
+        if(input) input.value = streamname || "";
+      }
+      return streamname;
+    }
+  }catch(e){}
+  return "";
+}
+
+// ------- upgrade orchestration -------
+const Upgrade = (function(){
+  const active = new Map();
+  let priorSliderWasOn = false;
+
+  function isActive(ip){ return active.has(ip); }
+  function anyActive(){ return active.size>0; }
+
+  async function pollVersion(ip){
+    try{
+      const r = await api("/api/version",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})});
+      if(r && r.ok && r.alive){
+        const ver = r.version || (r.unit && (r.unit.version||r.unit.firmware)) || "";
+        const row=unitMap.get(ip);
+        if(row && row.versionCell){ row.versionCell.textContent = ver || ""; }
+        return {alive:true,version:ver};
+      }
+      return {alive:false,version:""};
+    }catch(e){ return {alive:false,version:""}; }
+  }
+
+  async function waitForDrop(ip, timeoutMs=180000){
+    const start=Date.now(); let misses=0;
+    while(Date.now()-start < timeoutMs){
+      const ok = await tcpProbe(ip);
+      if(!ok){ misses++; if(misses>=2) return true; } else { misses=0; }
+      await new Promise(r=>setTimeout(r,1500));
+    }
+    return false;
+  }
+  async function waitForReturn(ip, timeoutMs=300000){
+    const start=Date.now(); let hits=0;
+    while(Date.now()-start < timeoutMs){
+      const ok = await tcpProbe(ip);
+      if(ok){ hits++; if(hits>=2) return true; } else { hits=0; }
+      await new Promise(r=>setTimeout(r,1500));
+    }
+    return false;
+  }
+
+  async function runOne(ip, doReset, snapshotVersion){
+    console.log(`[ui] runOne START for ${ip} at`, new Date().toISOString());
+    active.set(ip, {phase:"updating"});
+    // Status is already set to 'updating' by upgradeSelected after file send
+    
+    // Give device a moment to process the firmware before checking for reboot
+    await new Promise(r=>setTimeout(r, 2000));
+
+    // Wait for device to drop off (rebooting)
+    const dropped = await waitForDrop(ip);
+    if(dropped){
+      console.log(`[ui] ${ip} -> REBOOTING at`, new Date().toISOString());
+      setStatus(ip,"rebooting","s-rebooting",true);
+    }
+
+    // ...existing code...
+    await waitForReturn(ip);
+    const {alive, version} = await pollVersion(ip);
+    const changed = version && snapshotVersion && (version !== snapshotVersion);
+    console.log(`[ui] ${ip} post-upgrade: alive=${alive} version=${version} snapshot=${snapshotVersion} changed=${changed}`);
+
+    if(doReset){
+      console.log(`[ui] ${ip} -> factory reset path`);
+      setStatus(ip,"resetting","s-resetting",true);
+      try{ await api("/api/reset",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({ip})}); }catch(e){}
+      await waitForDrop(ip, 120000);
+      await waitForReturn(ip, 300000);
+      await pollVersion(ip);
+      await pollHostname(ip);
+      await rescanIPs([ip]);   // persist to server cache & export
+      console.log(`[ui] ${ip} -> UPGRADE SUCCESSFUL (reset path)`);
+      setStatus(ip,"upgrade successful","s-idle");
+      setTimeout(()=>{ setStatus(ip,"idle","s-idle-unchanged"); }, 30000);
+    }else{
+      if(alive && changed){
+        console.log(`[ui] ${ip} -> UPGRADE SUCCESSFUL (version changed)`);
+        await pollHostname(ip);
+        await rescanIPs([ip]); // persist to server cache & export
+        setStatus(ip,"upgrade successful","s-idle");
+        setTimeout(()=>{ setStatus(ip,"idle","s-idle-unchanged"); }, 30000);
+      } else {
+        console.log(`[ui] ${ip} -> idle (no version change detected)`);
+        setStatus(ip,"idle","s-idle-unchanged");
+      }
+    }
+    active.delete(ip);
+  }
+
+  function pauseGlobal(){
+    priorSliderWasOn = isSliderOn();
+    if(priorSliderWasOn) $("#poll_switch").classList.remove("on");
+    enableHeartbeat(false);
+  }
+  function maybeResumeGlobal(){
+    if(!anyActive() && priorSliderWasOn){
+      $("#poll_switch").classList.add("on");
+      enableHeartbeat(true);
+    }
+  }
+  async function start(ips, doReset){
+    pauseGlobal();
+    const snapshots = new Map();
+    for(const ip of ips){
+      const row = unitMap.get(ip);
+      const v = row && row.versionCell ? (row.versionCell.textContent||"") : "";
+      snapshots.set(ip, v);
+      // Don't reset status here - it's already set to "updating" by upgradeSelected
+    }
+    await Promise.allSettled(ips.map(ip => runOne(ip, doReset, snapshots.get(ip)||"")));
+    maybeResumeGlobal();
+  }
+  return { start, isActive };
+})();
+
+// ------- wiring -------
+function getSelectedIPs(){
+  return Array.from(document.querySelectorAll("#tbody tr"))
+    .filter(r=>r.querySelector("input.sel")?.checked)
+    .map(r=>r.dataset.ip);
+}
+
+async function upgradeSelected(){
+  console.log("[ui] upgradeSelected CALLED at", new Date().toISOString());
+  console.warn("UPGRADE BUTTON CLICKED - CHECK CONSOLE FILTER");
+  const file=$("#files").value;
+  if(!file || file==="Select Firmware"){ $("#up_status").textContent="select a .tar.gz"; return; }
+  if(!file.toLowerCase().endsWith(".tar.gz")){ $("#up_status").textContent="firmware must be .tar.gz"; return; }
+  const ips=getSelectedIPs(); if(!ips.length){ $("#up_status").textContent="select at least one unit"; return; }
+
+  const doReset = $("#reset_after").checked;
+  if (doReset) {
+    const ok = window.confirm(
+      "You have elected to FACTORY RESET the unit(s).\n\nAll settings will be lost.\nPasswords and configuration will need to be set again.\n\nProceed?"
+    );
+    if (!ok) return;
+  }
+
+  $("#up_status").textContent="starting upgrades...";
+  for(const ip of ips){ setStatus(ip,"sending","s-sending",true); }
+
+  const body={ targets:ips, file, username:"admin", password:appConfig.password };
+  console.log("[ui] CALLING BACKEND /api/upgrade at", new Date().toISOString());
+  console.log("[ui] starting upgrade", body);
+  let resp=null;
+  try{ resp = await api("/api/upgrade",{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); }
+  catch(e){ console.error("[ui] upgrade request error", e); $("#up_status").textContent = "upgrade call failed: "+String(e); return; }
+  console.log("[ui] upgrade response", resp);
+  console.log("[ui] FILE SEND COMPLETE at", new Date().toISOString());
+  try{
+    if(resp && resp.results){
+      const summary = Object.entries(resp.results).map(([ip,r])=>`${ip}:${r.ok?'ok':'fail'}`).join(" ");
+      $("#up_status").textContent = `server accepted upgrade (${summary})`;
+      // Set each device to 'updating' only if its upload succeeded
+      for(const [ip, result] of Object.entries(resp.results)){
+        if(result.ok){
+          console.log(`[ui] ${ip} -> UPDATING at`, new Date().toISOString());
+          setStatus(ip,"updating","s-updating",true);
+        }
+      }
+      // Force browser to render the status change before continuing
+      await new Promise(r => setTimeout(r, 100));
+    } else {
+      $("#up_status").textContent = "upgrade response missing results";
+    }
+  }catch(e){ console.warn("[ui] unable to summarize upgrade response", e); }
+  console.log("[ui] STARTING Upgrade.start at", new Date().toISOString());
+  Upgrade.start(ips, doReset).then(()=>{ $("#up_status").textContent="upgrade flow completed"; });
+}
+
+async function removeSelected(){
+  const ips = getSelectedIPs();
+  if(!ips.length){ $("#up_status").textContent="select at least one unit"; return; }
+
+  const ok = window.confirm(
+    `You are about to PERMANENTLY REMOVE ${ips.length} device(s) from all storage.\n\nThis will delete the device(s) from cache and all files.\n\nProceed?`
+  );
+  if (!ok) return;
+
+  $("#up_status").textContent="removing selected devices...";
+  
+  try{
+    const response = await fetch('/api/remove_units', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ips: ips })
+    });
+    const data = await response.json();
+    
+    if(data.ok){
+      $("#up_status").textContent = `Removed ${ips.length} device(s)`;
+      // Clear selections and refresh
+      document.querySelectorAll("#tbody .sel").forEach(c => c.checked = false);
+      $("#chk_all").checked = false;
+      // Reload cache to show updated list
+      try{
+        const payload = await api("/api/cache");
+        const serverRows = tolerantRows(payload);
+        units = mergeByIP([], serverRows);
+        saveLocal(units);
+      }catch(e){
+        console.error("[removeSelected] Error reloading cache:", e);
+      }
+      rerenderFiltered();
+      updateTotals();
+    }else{
+      $("#up_status").textContent = `Error: ${data.error || 'removal failed'}`;
+    }
+  }catch(e){
+    console.error("Remove error:", e);
+    $("#up_status").textContent = `Error: ${e.message}`;
+  }
+}
+
+async function rebootSelected(){
+  const ips = getSelectedIPs();
+  if(!ips.length){ $("#up_status").textContent="select at least one unit"; return; }
+
+  const ok = window.confirm(
+    `You are about to reboot ${ips.length} device(s).\n\nProceed?`
+  );
+  if (!ok) return;
+
+  $("#up_status").textContent="rebooting devices...";
+  // Start heartbeat if not running; do NOT change slider state
+  if(!pollTimer){
+    rebootHeartbeatOwned = !isSliderOn();
+    enableHeartbeat(true);
+  }
+  
+  for(const ip of ips){
+    setStatus(ip, "rebooting", "s-rebooting", true);
+    rebootTracker[ip] = { startedAt: Date.now(), sawOffline: false, completed: false };
+    
+    try{
+      await fetch('/api/producer/jsonrpc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ip: ip,
+          method: "Platform.Reboot",
+          params: { password: appConfig.password },
+          timeout: 5.0
+        })
+      });
+    }catch(e){
+      console.error(`Reboot error for ${ip}:`, e);
+    }
+  }
+  
+  $("#up_status").textContent="reboot commands sent";
+}
+
+function applyTheme(){ const dark = localStorage.getItem("dark") !== "false"; document.body.classList.toggle("light", !dark); $("#dark_switch").classList.toggle("on", dark); }
+function toggleDark(){ const isOn = $("#dark_switch").classList.contains("on"); localStorage.setItem("dark", (!isOn).toString()); applyTheme(); }
+
+// Helper: Convert string to base64
+function toBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+// Password sync functionality
+async function passwordSyncSelected(){
+  const backdrop = document.getElementById('pw_sync_backdrop');
+  const currentPwInput = document.getElementById('pw_sync_current');
+  const newPwInput = document.getElementById('pw_sync_new');
+  const allDevicesCheckbox = document.getElementById('pw_sync_all');
+  const statusDiv = document.getElementById('pw_sync_status');
+  
+  if(!backdrop || !currentPwInput || !newPwInput || !allDevicesCheckbox) return;
+  
+  // Preset current password
+  currentPwInput.value = 'password';
+  newPwInput.value = '';
+  allDevicesCheckbox.checked = false;
+  statusDiv.textContent = '';
+  
+  backdrop.style.display = 'flex';
+}
+
+function closePasswordSync(){
+  const backdrop = document.getElementById('pw_sync_backdrop');
+  if(backdrop) backdrop.style.display = 'none';
+}
+
+async function submitPasswordSync(){
+  const currentPwInput = document.getElementById('pw_sync_current');
+  const newPwInput = document.getElementById('pw_sync_new');
+  const allDevicesCheckbox = document.getElementById('pw_sync_all');
+  const statusDiv = document.getElementById('pw_sync_status');
+  const submitBtn = document.getElementById('pw_sync_submit');
+  
+  if(!currentPwInput || !newPwInput || !statusDiv || !submitBtn) return;
+  
+  const currentPw = currentPwInput.value;
+  const newPw = newPwInput.value;
+  
+  if(!currentPw || !newPw){
+    statusDiv.textContent = 'Both passwords required';
+    statusDiv.style.color = 'var(--danger)';
+    return;
+  }
+  
+  // Get target IPs
+  let ips;
+  if(allDevicesCheckbox.checked){
+    // Get all IPs from the table
+    ips = Array.from(document.querySelectorAll("#tbody tr")).map(tr=>tr.dataset.ip).filter(Boolean);
+  } else {
+    // Get selected IPs
+    ips = getSelectedIPs();
+  }
+  
+  if(!ips.length){
+    statusDiv.textContent = 'No devices selected';
+    statusDiv.style.color = 'var(--danger)';
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  statusDiv.textContent = `Sending to ${ips.length} device(s)...`;
+  statusDiv.style.color = 'var(--muted)';
+  
+  let successCount = 0;
+  let failCount = 0;
+  const errors = [];
+  
+  // Send password change to each device
+  for(const ip of ips){
+    try{
+      // Encode passwords to base64
+      const oldPasswordB64 = toBase64(currentPw);
+      const newPasswordB64 = toBase64(newPw);
+      
+      const payload = {
+        username: 'admin',
+        oldpassword: oldPasswordB64,
+        newpassword: newPasswordB64
+      };
+      
+      const response = await fetch(`http://${ip}/change/password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if(response.ok){
+        successCount++;
+      } else {
+        failCount++;
+        errors.push(`${ip}: ${response.status} ${response.statusText}`);
+      }
+    }catch(e){
+      failCount++;
+      errors.push(`${ip}: ${e.message}`);
+    }
+  }
+  
+  submitBtn.disabled = false;
+  
+  if(failCount === 0){
+    statusDiv.textContent = `✓ Password set on ${successCount} device(s)`;
+    statusDiv.style.color = '#10b981';
+    setTimeout(()=>{ closePasswordSync(); }, 2000);
+  } else if(successCount > 0){
+    statusDiv.textContent = `Set on ${successCount}, failed on ${failCount}`;
+    statusDiv.style.color = '#f59e0b';
+  } else {
+    statusDiv.textContent = `Failed to set password on all devices`;
+    statusDiv.style.color = 'var(--danger)';
+  }
+  
+  if(errors.length > 0 && errors.length <= 3){
+    const errorText = errors.join('; ');
+    statusDiv.textContent += ` (${errorText})`;
+  }
+}
+
+  document.addEventListener("DOMContentLoaded", async ()=>{
+    // Load config from backend
+    try{
+      const cfg = await fetch('/api/config').then(r=>r.json());
+      if(cfg){
+        if(cfg.password) appConfig.password = cfg.password;
+        if(cfg.ws_port) appConfig.ws_port = cfg.ws_port;
+        if(cfg.concurrency) appConfig.concurrency = cfg.concurrency;
+      }
+    }catch(e){}
+    
+    $("#dark_switch").addEventListener("click", ()=>{ toggleDark(); });
+    $("#scan").addEventListener("click", scan);
+    $("#stop_scan").addEventListener("click", stopScan);
+  $("#clear_units").addEventListener("click", async()=>{
+    if (!window.confirm("Clear all units from cache? This will remove all device data.")) {
+      return;
+    }
+    const statusEl = $("#scan_status");
+    if (statusEl) statusEl.textContent = "Clearing units...";
+    try {
+      const response = await api("/api/clear_units", {method:"POST"});
+      if (response && response.ok) {
+        units = [];
+        unitMap.clear();
+        saveLocal([]);
+        StatusStore.clearAll();
+        renderRows([]);
+        if (statusEl) statusEl.textContent = "Units cleared successfully";
+      } else {
+        if (statusEl) statusEl.textContent = "Failed to clear units on server";
+      }
+    } catch(e) {
+      console.error("Clear units error:", e);
+      if (statusEl) statusEl.textContent = "Error clearing units: " + e.message;
+    }
+  });
+  
+  // Targets input clear button
+  const targetsInput = $("#targets");
+  const clearTargetsBtn = $("#clear_targets");
+  if(targetsInput && clearTargetsBtn){
+    targetsInput.addEventListener("input", ()=>{
+      clearTargetsBtn.style.display = targetsInput.value ? "block" : "none";
+    });
+    clearTargetsBtn.addEventListener("click", ()=>{
+      targetsInput.value = "";
+      clearTargetsBtn.style.display = "none";
+      targetsInput.focus();
+    });
+  }
+  
+  $("#refresh_files").addEventListener("click", refreshFiles);
+  $("#upgrade_sel").addEventListener("click", upgradeSelected);
+  $("#reboot_sel").addEventListener("click", rebootSelected);
+  $("#remove_sel").addEventListener("click", removeSelected);
+  $("#password_sync_btn").addEventListener("click", passwordSyncSelected);
+  
+  const pwSyncCancel = document.getElementById('pw_sync_cancel');
+  if(pwSyncCancel) pwSyncCancel.addEventListener("click", closePasswordSync);
+  
+  const pwSyncSubmit = document.getElementById('pw_sync_submit');
+  if(pwSyncSubmit) pwSyncSubmit.addEventListener("click", submitPasswordSync);
+  
+  const pwSyncBackdrop = document.getElementById('pw_sync_backdrop');
+  if(pwSyncBackdrop) pwSyncBackdrop.addEventListener("click", function(e){
+    if(e.target === this) closePasswordSync();
+  });
+  
+  $("#files").addEventListener("change", ()=>{ rerenderFiltered(); updateTotals(); });
+  
+  // Column visibility toggles
+  const COL_VISIBILITY_KEY = "col_visibility_v1";
+  function loadColumnVisibility(){
+    try {
+      const saved = localStorage.getItem(COL_VISIBILITY_KEY);
+      if (!saved) {
+        // Default: all columns hidden until user enables them
+        return { "dante": false, "dante-name": false, "dante-ip": false, "edid-resolution": false, "model": false };
+      }
+      return JSON.parse(saved);
+    } catch {
+      // Default: all columns hidden until user enables them
+      return { "dante": false, "dante-name": false, "dante-ip": false, "edid-resolution": false, "model": false };
+    }
+  }
+  function saveColumnVisibility(state){
+    try {
+      localStorage.setItem(COL_VISIBILITY_KEY, JSON.stringify(state));
+    } catch {}
+  }
+  function applyColumnVisibility(state){
+    const cols = ["dante", "dante-name", "dante-ip", "edid-resolution", "model"];
+    cols.forEach(col => {
+      const isHidden = state[col] === false;
+      document.body.classList.toggle(`hide-${col}`, isHidden);
+      const toggle = document.querySelector(`#toggle_${col.replace(/-/g, '_')}`);
+      if (toggle) toggle.checked = !isHidden;
+    });
+  }
+  
+  // Initialize column visibility from localStorage
+  const colState = loadColumnVisibility();
+  applyColumnVisibility(colState);
+  
+  // Add event listeners to column toggle checkboxes
+  document.querySelectorAll(".col-toggle").forEach(chk => {
+    chk.addEventListener("change", (e) => {
+      const col = e.target.dataset.col;
+      const colState = loadColumnVisibility();
+      colState[col] = e.target.checked;
+      saveColumnVisibility(colState);
+      applyColumnVisibility(colState);
+    });
+  });
+  
+  $("#chk_all").addEventListener("change", (e)=>{ document.querySelectorAll("#tbody .sel").forEach(c=> c.checked=e.target.checked); });
+
+  document.querySelectorAll("th.sortable").forEach(th=>{
+    th.addEventListener("click", ()=>{
+      const key = th.dataset.key;
+      if(sortKey === key){ sortDir = (sortDir === "asc") ? "desc" : "asc"; }
+      else { sortKey = key; sortDir = "asc"; }
+      rerenderFiltered();
+      document.querySelectorAll("th.sortable .caret").forEach(c=> c.textContent="▾");
+      th.querySelector(".caret").textContent = (sortDir==="asc") ? "▴" : "▾";
+    });
+  });
+
+  applyTheme();
+  await Promise.allSettled([loadAdapters(), refreshFiles()]);
+
+  const local = loadLocal();
+  if(local.length){ units = mergeByIP(units, local); rerenderFiltered(); updateTotals(); }
+
+  try{
+    const payload = await api("/api/cache");
+    const serverRows = tolerantRows(payload);
+    const CLEAR_UNITS_PROMPT_SESSION_KEY = "clear_units_prompt_seen_v1";
+    const hasSeenClearPrompt = sessionStorage.getItem(CLEAR_UNITS_PROMPT_SESSION_KEY) === "1";
+    const shouldPromptClearUnits = serverRows.length > 0 && !hasSeenClearPrompt;
+
+    if (shouldPromptClearUnits) {
+      const shouldClearUnits = window.confirm("Clear Units For Optimal Performance");
+      if (shouldClearUnits) {
+        try {
+          const clearResp = await api("/api/clear_units", { method: "POST" });
+          if (clearResp && clearResp.ok) {
+            // Set flag only after clear succeeds
+            sessionStorage.setItem(CLEAR_UNITS_PROMPT_SESSION_KEY, "1");
+            units = [];
+            unitMap.clear();
+            saveLocal([]);
+            StatusStore.clearAll();
+            rerenderFiltered();
+            updateTotals();
+          } else {
+            // Clear failed; don't set flag so prompt can appear again
+            units = mergeByIP(units, serverRows);
+            saveLocal(units);
+            rerenderFiltered();
+            updateTotals();
+          }
+        } catch {
+          // Clear error; don't set flag so prompt can appear again
+          units = mergeByIP(units, serverRows);
+          saveLocal(units);
+          rerenderFiltered();
+          updateTotals();
+        }
+      } else {
+        // User declined; don't set flag so prompt can appear again next session
+        units = mergeByIP(units, serverRows);
+        saveLocal(units);
+        rerenderFiltered();
+        updateTotals();
+      }
+    } else {
+      units = mergeByIP(units, serverRows);
+      saveLocal(units);
+      rerenderFiltered();
+      updateTotals();
+    }
+    startRtmpPolling(); // Start polling for encoder RTMP status
+  }catch(e){}
+
+  $("#poll_switch").addEventListener("click", ()=>{
+    const on = $("#poll_switch").classList.toggle("on");
+    if (on) {
+      // Enable polling: start heartbeat
+      enableHeartbeat(true);
+    } else {
+      // Disable polling: set all to unknown and stop heartbeat IF no reboots active
+      getVisibleIPs().forEach(ip => {
+        setStatus(ip, "unknown", "s-unknown");
+      });
+      if (Object.keys(rebootTracker).length === 0) {
+        enableHeartbeat(false);
+      }
+    }
+  });
+
+  // Blink LED button handler
+  document.addEventListener("click", async (e)=>{
+    const btn = e.target.closest('.btn-blink');
+    if(!btn) return;
+    const ip = btn.dataset.ip;
+    const model = btn.dataset.model || '';
+    if(!ip) return;
+    
+    const isCS31 = model.includes('at-ome-cs31');
+    
+    if(isCS31){
+      // CS31: toggle persistent blink
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = '⏳';
+      try{
+        // Get current blink state
+        const getResp = await fetch('/api/producer/jsonrpc', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ ip, method: "System.Get", params: {} })
+        });
+        const getResult = await getResp.json();
+        if(!getResp.ok || getResult.error) throw new Error(getResult.error?.message || getResult.error || 'Failed to get status');
+        
+        const currentState = getResult.result?.blinkled || false;
+        const newState = !currentState;
+        
+        // Set new blink state
+        const setResp = await fetch('/api/producer/jsonrpc', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ ip, method: "SystemBlinkLed.Set", params: newState })
+        });
+        const setResult = await setResp.json();
+        if(!setResp.ok || setResult.error) throw new Error(setResult.error?.message || setResult.error || 'Failed to set blink');
+        
+        // Update button to reflect state
+        if(newState){
+          btn.textContent = '🔴'; // red circle for ON
+          btn.style.background = 'rgba(239, 68, 68, 0.2)';
+        } else {
+          btn.textContent = '💡'; // bulb for OFF
+          btn.style.background = '';
+        }
+        btn.disabled = false;
+      }catch(e){
+        console.error('CS31 Blink error:', e);
+        btn.textContent = '❌';
+        setTimeout(()=>{ btn.textContent = originalText; btn.disabled = false; btn.style.background = ''; }, 3000);
+      }
+    } else {
+      // Encoder: 30-second blink command
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳';
+      try{
+        const payload = { ip, method: "FrontPanelBlinkLed.Set", params: {} };
+        const resp = await fetch('/api/producer/jsonrpc', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const result = await resp.json();
+        if(!resp.ok || result.error) throw new Error(result.error?.message || result.error || 'Blink failed');
+        btn.textContent = '✔';
+        setTimeout(()=>{ btn.textContent = originalText; btn.disabled = false; }, 30000);
+      }catch(e){
+        console.error('Blink error:', e);
+        btn.textContent = '❌';
+        setTimeout(()=>{ btn.textContent = originalText; btn.disabled = false; }, 30000);
+      }
+    }
+  });
+});
+</script>
+
+<script>
+// export CSV button (unchanged)
+(function(){
+  const $ = (s)=>document.querySelector(s);
+  document.addEventListener("DOMContentLoaded", ()=>{
+    const btn = document.querySelector("#export_units");
+    if(!btn) return;
+    btn.addEventListener("click", async()=>{
+      const st = document.querySelector("#up_status") || document.createElement("span");
+      const prev = st.textContent || "";
+      btn.disabled = true; st.textContent = "exporting…";
+      console.debug("[export_csv] Button clicked, sending POST /api/export_csv");
+      try{
+        const res = await fetch("/api/export_csv", { method: "POST" });
+        console.debug(`[export_csv] Response status: ${res.status}`);
+        if(!res.ok){
+          const t = await res.text().catch(()=>res.statusText);
+          console.warn(`[export_csv] Failed: ${res.status} ${t||""}`);
+          st.textContent = `failed: ${res.status} ${t||""}`;
+        }else{
+          const blob = await res.blob();
+          const disp = res.headers.get("Content-Disposition") || "";
+          const m = /filename=\"?([^\\";]+)\"?/i.exec(disp);
+          const filename = m ? m[1] : `units_${Date.now()}.csv`;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(url);
+          st.textContent = "download started";
+          console.debug(`[export_csv] Download started: ${filename}`);
+        }
+      }catch(e){
+        console.error(`[export_csv] Error:`, e);
+        st.textContent = `error: ${e}`;
+      }finally{
+        setTimeout(()=>{ st.textContent = prev; btn.disabled = false; }, 1200);
+      }
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  // Utility: compute encoder/decoder and URLs from link or dataset
+  function isEncFrom(el){
+    if(!el) return false;
+    const role = (el.dataset.role||''); if(/^enc/i.test(role)) return true;
+    const mdl = (el.dataset.model||'').toLowerCase();
+    if(mdl.startsWith('at-luma-e') || mdl.startsWith('at-omni-e')) return true;
+    if(mdl.includes('at-ome-cs31')) return true; // switcher stream endpoint
+    // treat plain /stream (without query) also as stream source
+    const href = (el.href||'');
+    return href.includes('/stream');
+  }
+  function encoderURL(ip, isSwitcher){
+    if(isSwitcher) return `http://${ip}/stream?t=${Math.random()}`;
+    return `http://${ip}/stream?resolution=320x180&fps=15&bitrate=512`;
+  }
+  function decoderURL(ip){ return `http://${ip}/thumbnail/thumbnail1.jpg`; }
+
+  // Hover preview plumbing (defaults to LEFT of cursor)
+  let hoverTimer=null;
+  function ensureHover(){
+    if(document.getElementById('hover_preview')) return;
+    const box=document.createElement('div'); box.id='hover_preview'; box.className='hover-preview';
+    const img=document.createElement('img'); img.id='hover_preview_img'; img.alt='preview';
+    box.appendChild(img); document.body.appendChild(box);
+  }
+  function showHover(e, link){
+    ensureHover();
+    const box=document.getElementById('hover_preview');
+    const img=document.getElementById('hover_preview_img');
+    if(!box||!img) return;
+    if(hoverTimer){ clearInterval(hoverTimer); hoverTimer=null; }
+    const ip = link.dataset.ip;
+    const enc = isEncFrom(link);
+    if(enc){
+      const typeLabel = (link.dataset.typeLabel||'').toLowerCase();
+      const isSwitcher = typeLabel === 'switcher' || (link.dataset.model||'').toLowerCase().includes('at-ome-cs31');
+      img.src = encoderURL(ip, isSwitcher);
+    }else{
+      const bump=()=>{ img.src = decoderURL(ip) + '?t=' + Date.now(); };
+      bump(); hoverTimer = setInterval(bump, 2000);
+    }
+    moveHover(e);
+    box.style.display='block';
+  }
+  function moveHover(e){
+    const box=document.getElementById('hover_preview'); if(!box || box.style.display!=='block') return;
+    const pad=16; 
+    // Default: place to the left of cursor
+    let x=e.clientX - box.offsetWidth - pad; 
+    let y=e.clientY + pad;
+    const vw=window.innerWidth, vh=window.innerHeight, w=box.offsetWidth, h=box.offsetHeight;
+    // Only move to right if it goes off left edge
+    if(x<0) x = e.clientX + pad;
+    // Adjust vertical if too low
+    if(y+h>vh) y = e.clientY - h - pad;
+    // Final boundary checks
+    if(x+w>vw) x = vw - w - 4;
+    if(y+h>vh) y = vh - h - 4;
+    if(y<0) y = 4;
+    box.style.left = x + 'px'; box.style.top = y + 'px';
+  }
+  function hideHover(){
+    const box=document.getElementById('hover_preview'), img=document.getElementById('hover_preview_img');
+    if(!box||!img) return;
+    box.style.display='none'; img.src='';
+    if(hoverTimer){ clearInterval(hoverTimer); hoverTimer=null; }
+  }
+
+  // Delegated events
+  document.addEventListener('mouseover', (e)=>{
+    const a = e.target.closest('a.preview-link'); if(!a) return;
+    showHover(e, a);
+  });
+  document.addEventListener('mousemove', (e)=>{
+    const a = e.target.closest('a.preview-link'); if(!a) return;
+    moveHover(e);
+  });
+  document.addEventListener('mouseout', (e)=>{
+    if(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('a.preview-link')) return;
+    // If leaving the link, hide
+    if(e.target.closest && e.target.closest('a.preview-link')) hideHover();
+  });
+
+  // Delegated click -> popup
+  document.addEventListener('click', (e)=>{
+    const a = e.target.closest('a.preview-link'); if(!a) return;
+    e.preventDefault();
+    const ip = a.dataset.ip;
+    const enc = isEncFrom(a);
+    const typeLabel = (a.dataset.typeLabel||'').toLowerCase();
+    const isSwitcher = typeLabel === 'switcher' || (a.dataset.model||'').toLowerCase().includes('at-ome-cs31');
+    const base = enc ? encoderURL(ip, isSwitcher) : decoderURL(ip);
+    const url  = enc ? base : (base + '?t=' + Date.now());
+    const win = window.open('about:blank', 'preview_'+ip, 'popup=1,width=420,height=280,menubar=0,toolbar=0,location=0,status=0,resizable=1,scrollbars=0');
+    if(!win) return;
+    const htmlDoc = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Preview ${ip||''}</title></head>
+<body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;">
+  <img id="p" src="${url}" style="display:block;max-width:100vw;max-height:100vh"/>
+  <script>
+    (function(){
+      var enc=${enc ? 'true' : 'false'};
+      var base=${JSON.stringify(base)};
+      var img=document.getElementById('p');
+      function fit(){ try{ var w=img.naturalWidth||320, h=img.naturalHeight||180; window.resizeTo(w+20,h+60);}catch(e){} }
+      img.addEventListener('load',fit);
+      if(!enc){ setInterval(function(){ img.src=base+'?t='+Date.now(); },2000); }
+    })();
+  <\/script>
+
+  `; // end htmlDoc template
+    win.document.open(); win.document.write(htmlDoc); win.document.close();
+  });
+})();
+</script>
+    <script src="/ui/preview_inject_popup_v7.js?v=7"></script>
+  </body>
+</html>

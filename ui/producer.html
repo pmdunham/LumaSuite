@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>LumaSuite</title>
+  <link rel="icon" href="/ui/favicon.ico">
+  <style>
+    .nav-tabs { display:flex; gap:4px; border-bottom:2px solid var(--border); }
+    .nav-tab { padding:6px 14px; text-decoration:none; color:var(--fg); border-radius:6px 6px 0 0; transition:all 0.2s; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; }
+    .nav-tab:hover { background:rgba(30,144,255,0.1); color:#fff; }
+    .nav-tab.active { background:var(--accent); color:#fff; border-bottom:2px solid var(--accent); margin-bottom:-2px; }
+    :root{--bg:#1d232a;--card:#222a33;--panel:#222a33;--panel-2:#262f39;--fg:#e9eef5;--muted:#9aa7b4;--accent:#1e90ff;--danger:#e5534b;--border:rgba(255,255,255,0.08)}
+    body.light{--bg:#f7f8fb;--card:#fff;--panel:#fff;--panel-2:#f2f5f8;--fg:#0d1117;--muted:#5a6b7a;--border:rgba(0,0,0,.08)}
+    body.dark{--bg:#1d232a;--card:#222a33;--panel:#222a33;--panel-2:#262f39;--fg:#e9eef5;--muted:#9aa7b4;--accent:#1e90ff;--danger:#e5534b;--border:rgba(255,255,255,0.08)}
+    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 Calibri,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;min-width:1044px}
+    .wrap{max-width:1200px;margin:20px auto 48px;padding:0 16px}
+    h1{margin:0 0 14px;font-size:22px;font-weight:600}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .col{display:flex;flex-direction:column;gap:10px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .panel-title{font-weight:600;margin-bottom:8px;opacity:.9}
+    select,input[type=text],input[type=number],textarea{background:var(--panel-2);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;outline:none;font-size:14px}
+    textarea{min-height:120px;width:100%;resize:vertical}
+    input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+    /* no spinners */
+    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield;appearance:textfield}
+    .btn{background:var(--accent);color:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer}
+    /* Match index button compact size for Refresh only (keep font size) */
+    #refreshBtn.btn{padding:3px 8px;border-radius:8px;align-self:center}
+    .btn:hover{filter:brightness(1.1)}
+    .btn.small{padding:6px 8px;font-size:12px}
+    /* toggles: label on right + blue knob when on */
+    .toggle{display:inline-flex;align-items:center;gap:4px}
+    .toggle.right-label{flex-direction:row-reverse}
+    .toggle .label{opacity:.9}
+    .toggle .pill::before{content:none !important}
+    /* reduce pill size by 25% for a more compact header toggle */
+    .toggle .pill{position:relative;display:inline-block;width:35px;height:18px;border-radius:999px;background:#39414a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);vertical-align:middle;transition:background .16s ease,box-shadow .16s ease}
+    .toggle .pill::after{content:"";position:absolute;top:50%;left:2px;width:15px;height:15px;margin-top:-7.5px;border-radius:50%;background:#d3d7dc;box-shadow:0 1px 1px rgba(0,0,0,.25);transition:left .16s ease,background .16s ease,box-shadow .16s ease}
+    .toggle .pill.on{background:rgba(30,144,255,.25)!important;box-shadow:inset 0 0 0 2px rgba(30,144,255,.15)}
+    .toggle .pill.on::after{left:18px;background:var(--accent)!important;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+    .grid{display:grid;grid-template-columns:1fr 270px;gap:16px}
+    .stack{display:flex;flex-direction:column;gap:12px}
+    #tickerRows.stack,#rtmpPanel.stack{gap:4px}
+    /* Custom tooltip styling */
+    .tooltip-info { position:relative; display:inline-block; }
+    .tooltip-info:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 150%;
+      right: 0;
+      background: var(--card);
+      color: var(--fg);
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      white-space: normal;
+      max-width: 280px;
+      width: max-content;
+      z-index: 1000;
+      margin-bottom: 5px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .tooltip-info-right { position:relative; display:inline-block; }
+    .tooltip-info-right:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 150%;
+      left: 0;
+      background: var(--card);
+      color: var(--fg);
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      white-space: normal;
+      max-width: 280px;
+      width: max-content;
+      z-index: 1000;
+      margin-bottom: 5px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    /* Fixed-size MJPEG window 640x360 */
+    .thumb {
+  width: 175px;
+  height: 99px;
+  object-fit: contain;
+  background: #0c0f13;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+#livePreview.thumb {
+  width: 640px;
+  height: 360px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+ /* Image preview placeholder */
+ .slot.placeholder .thumb{display:none;}
+ .slot .thumb:not([src]),.slot .thumb[src=""]{display:none;}
+ .slot .img-ph{display:none;align-items:center;justify-content:center;
+   background:#0c0f13;border:1px dashed var(--border);border-radius:10px;
+   color:var(--muted);font-size:13px;font-weight:500;}
+ .slot.placeholder .img-ph{display:flex;}
+ .slot .thumb:not([src]) ~ .img-ph,.slot .thumb[src=""] ~ .img-ph{display:flex;}
+/* Active Logo and Active Image thumbnails 50% larger */
+#logoPreview.thumb, #activeImage.thumb {
+  width: 210px;
+  height: 118px;
+}
+/* Center image/logo radio buttons under thumbnails */
+.slot .row {
+  justify-content: center;
+}
+
+/* Align RTMP radio buttons to far left of the row */
+.rtmp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rtmp-row input[type="radio"][data-apply] {
+  order: -1; /* Moves it to the far left */
+  margin-right: 6px;
+}
+    .slot{padding:10px;border:1px dashed var(--border);border-radius:12px;background:var(--panel-2)}
+    .badge{display:inline-block;background:var(--danger);color:#fff;padding:2px 6px;border-radius:999px;font-size:11px}
+    .small{font-size:12px;color:var(--muted)}
+    .w-port{width:6.2ch}
+    .w-2dig{width:3.2ch}
+    .w-wide{min-width:180px}
+    .w-med{min-width:120px}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono";font-size:12px;opacity:.9}
+    hr.sep{border:none;border-top:1px solid var(--border);margin:10px 0}
+
+    /* Collapsible panels */
+    .collapsible .header{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+    .collapsible .chev{width:16px;height:16px;transition:transform .2s ease}
+    .collapsible.collapsed .chev{transform:rotate(-90deg)}
+    .collapsible .body{margin-top:10px}
+    .collapsible.collapsed .body{display:none}
+    .icon{cursor:pointer;user-select:none}
+    .icon.add{font-size:18px;padding:0 6px}
+    .icon.trash{font-size:16px;padding:0 6px}
+    .rtmp-row,.ticker-row{display:flex;gap:8px;align-items:center;margin-top:3px;flex-wrap:wrap}
+	.btnTicker {
+    width: 80px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: background 0.25s;
+	  }
+	  .btnTicker.on  { background: #28a745; } /* green */
+	  .btnTicker.off {
+	  background: #555;     /* clean gray */
+	  color: #eee;
+	}
+  /* Center all images inside .slot or .thumb containers */
+  .slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .slot img.thumb {
+    display: block;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+
+    /* Header tabs and gear */
+    .header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+    .header .right { display:flex; align-items:center; gap:8px; }
+    /* Option 1b: Classic Tabs with Icons */
+    .tabs { display:flex; gap:4px; border-bottom:2px solid var(--border); }
+    .tab { padding:6px 14px; text-decoration:none; color:var(--fg); border-radius:6px 6px 0 0; transition:all 0.2s; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; }
+    .tab:hover { background:rgba(30,144,255,0.1); }
+    .tab.active { background:var(--accent); color:#fff; border-bottom:2px solid var(--accent); margin-bottom:-2px; }
+    .gear-btn { width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:8px; border:1px solid var(--border); background:var(--panel-2); cursor:pointer; font-size:18px; color:var(--fg); }
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:20000; }
+    .modal { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; width:520px; max-width:95%; color:var(--fg); }
+    .modal h3 { margin:0 0 8px 0; }
+    .modal .row { margin-bottom:8px; }
+    .path-input { display:flex; gap:8px; align-items:center; }
+    .path-input input[type="text"]{ flex:1; }
+
+
+  </style>
+</head>
+<body>
+  <!-- Connection Status Banner -->
+  <div id="connection_banner" style="display:none; position:fixed; top:0; left:0; right:0; background:#d32f2f; color:white; padding:12px 20px; font-weight:bold; text-align:center; z-index:10000; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    ⚠️ Connection lost, check application.
+  </div>
+  <div class="wrap">
+    <div class="row header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img id="company_logo" src="/ui/companylogo.png" alt="Company Logo" style="height:48px;width:auto;border-radius:6px;">
+        <h1 class="title" style="margin:0;">LumaSuite Device Manager</h1>
+      </div>
+      <div class="right">
+        <div class="nav-tabs" style="margin-bottom:0;">
+          <a class="nav-tab" href="/ui/index.html">
+            <span>📊</span>
+            <span>Device Manager</span>
+          </a>
+          <a class="nav-tab" href="/ui/matrix.html">
+            <span>🔀</span>
+            <span>Matrix Routing</span>
+          </a>
+          <span class="nav-tab active">
+            <span>🎬</span>
+            <span>Production Studio</span>
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="panel" style="position:relative;">
+      <button id="gear" class="gear-btn" title="Settings" style="position:absolute; top:8px; right:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+      <div id="streamingStatus" style="display:none;font-size:12px;color:var(--muted);margin-bottom:8px;position:relative;z-index:1;">
+        <div id="streamingUnits" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+      <div class="row" style="gap:16px;">
+        <div class="col">
+          <label class="small" for="unitSelect">Select Unit</label>
+          <select id="unitSelect" name="unitSelect" class="w-wide"></select>
+          <div class="small" id="cacheStatus"></div>
+        </div>
+        <button id="refreshBtn" class="btn">Refresh</button>
+      </div>
+
+      <div class="grid" style="margin-top:12px;">
+        <div class="stack">
+          <div class="slot live-slot" style="text-align:center;">
+        <img id="livePreview"
+           class="thumb"
+           src=""
+           alt="Live Preview"
+           onerror="this.closest('.slot').classList.add('placeholder')"
+           onload="if(this.naturalWidth) this.closest('.slot').classList.remove('placeholder')"
+           onclick="openPreviewPopup(this.src)">
+        <div class="img-ph" style="width:640px;height:360px;">Select Encoder</div>
+          </div>
+          <div id="previewMeta" class="code small"></div>
+
+          <div class="panel">
+            <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div class="panel-title">Video Output</div>
+            </div>
+            <div class="row" style="gap:12px;align-items:center;">
+              <label class="row" style="gap:6px;align-items:center;" for="selProfile">
+                <span class="tooltip-info-right" style="cursor:help;" data-tooltip="RTMP profile will be automatically selected when Enabled, Custom settings can be set in the unit web interface">ℹ️ Profile</span>
+                <select id="selProfile" name="selProfile">
+                  <option value="1">Default</option>
+                  <option value="3">AT-OME-CS31</option>
+                  <option value="5">RTMP</option>
+                  <option value="4">Custom</option>
+                </select>
+              </label>
+
+              <label class="row" style="gap:6px;align-items:center;" for="selResolution">
+                <span class="tooltip-info-right" style="cursor:help;" data-tooltip="Most RTMP services want a max resolution of 1920x1080 for best results.">ℹ️ Resolution</span>
+                <select id="selResolution" name="selResolution">
+                  <option value="auto">auto</option>
+                  <option value="1920x1080">1920x1080</option>
+                  <option value="1280x720">1280x720</option>
+                  <option value="854x480">854x480</option>
+                  <option value="640x360">640x360</option>
+                </select>
+              </label>
+
+              <label class="row" style="gap:6px;align-items:center;" for="selFramerate">
+                <span>FR</span>
+                <select id="selFramerate" name="selFramerate">
+                  <option value="0">auto</option>
+                  <option value="60">60</option>
+                  <option value="50">50</option>
+                  <option value="30">30</option>
+                  <option value="25">25</option>
+                  <option value="15">15</option>
+                </select>
+              </label>
+
+				<label class="row" style="gap:6px;align-items:center;" for="inpBitrate">
+				  <span>Bitrate</span>
+				  <input id="inpBitrate"
+						 name="inpBitrate"
+						 class="mono"
+						 type="number"
+						 min="128"
+						 max="60000"
+						 autocomplete="off"
+						 style="width:6ch;text-align:right;"
+						 onblur="validateBitrate(this)"
+						 placeholder="128-60000">
+				</label>
+
+              <label class="row" style="gap:6px;align-items:center;" for="selMode">
+                <span>Mode</span>
+                <select id="selMode" name="selMode">
+                  <option value="cbr">CBR</option>
+                  <option value="vbr">VBR</option>
+                </select>
+              </label>
+
+
+  <!-- Configuration modal (producer) -->
+  <div id="cfg_backdrop" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:20000;">
+    <div class="modal" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;width:520px;max-width:95%;color:var(--fg);">
+    <form autocomplete="off">
+    <h3 style="margin:0 0 8px 0;">Configuration</h3>
+    <input type="text" name="username" autocomplete="username" style="display:none;" />
+    <div class="row" style="margin-bottom:8px;align-items:center;gap:8px;">
+      <label class="small" for="cfg_password">Password</label>
+      <input id="cfg_password" name="cfg_password" type="password" autocomplete="current-password" style="width:160px;" />
+      <button id="cfg_pw_toggle" class="btn small" type="button" title="Show/Hide">👁️</button>
+    </div>
+    
+    <div class="row" style="margin-bottom:8px;">
+      <label class="small" for="cfg_ws_port">WS PORT</label>
+      <select id="cfg_ws_port" name="cfg_ws_port" style="width:140px;">
+        <option value="80" selected>80 (ws/http)</option>
+        <option value="443">443 (wss/https)</option>
+      </select>
+    </div>
+    <div class="row" style="margin-bottom:8px;">
+      <label class="small" for="cfg_concurrency">Parallel uploads</label>
+      <select id="cfg_concurrency" name="cfg_concurrency" style="width:80px;">
+        <option>1</option><option>2</option><option>4</option><option selected>6</option><option>8</option><option>12</option>
+      </select>
+    </div>
+    <div class="row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+        <label class="small" for="cfg_firmware_path">Firmware path</label>
+        <input id="cfg_firmware_path" name="cfg_firmware_path" type="text" placeholder="e.g. c:\" style="flex:1;" />
+        <button id="cfg_firmware_browse" class="btn" type="button">Browse</button>
+      </div>
+      <div class="row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+        <label class="small" for="cfg_imagestream_path">Static image path</label>
+        <input id="cfg_imagestream_path" name="cfg_imagestream_path" type="text" placeholder="e.g. c:\" style="flex:1;" />
+        <button id="cfg_imagestream_browse" class="btn" type="button">Browse</button>
+      </div>
+      <div class="row" style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+        <label class="small" for="cfg_logos_path">Logo path</label>
+        <input id="cfg_logos_path" name="cfg_logos_path" type="text" placeholder="e.g. c:\" style="flex:1;" />
+        <button id="cfg_logos_browse" class="btn" type="button">Browse</button>
+      </div>
+      <div id="browse_hint" class="small" style="display:none;color:var(--muted);margin-top:6px;">
+        If you cannot browse to the file locations, copy and paste the absolute path into the field.
+      </div>
+      <div id="cfg_error" class="row" style="color:var(--danger);display:none;margin-top:6px;"></div>
+      <div class="row" style="justify-content:flex-end;gap:8px;">
+        <button id="cfg_close" class="btn" type="button">Cancel</button>
+        <button id="cfg_save" class="btn" type="button">Save</button>
+      </div>
+    </form>
+    </div>
+  </div>
+
+  <!-- Server-side folder browser modal -->
+  <div id="cfg_browser_backdrop" class="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:20001;">
+    <div class="modal" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;width:640px;max-width:96%;color:var(--fg);">
+      <h3 style="margin:0 0 8px 0;">Select Folder</h3>
+      <div class="row" style="gap:8px;align-items:center;margin-bottom:8px;">
+        <button id="cfg_browser_up" class="btn small">Up</button>
+        <input id="cfg_browser_path" name="cfg_browser_path" type="text" style="flex:1" readonly />
+        <button id="cfg_browser_select" class="btn">Select</button>
+        <button id="cfg_browser_cancel" class="btn">Cancel</button>
+      </div>
+      <div id="cfg_browser_list" style="max-height:320px;overflow:auto;border:1px solid var(--border);padding:8px;background:var(--panel-2);border-radius:8px;"></div>
+    </div>
+  </div>
+
+  <script>
+  // Preview open/close
+  window.openPreviewPopup = function(src){
+    const float = document.getElementById('floatingPreview');
+    const img = document.getElementById('floatingImg');
+    if (!src) return; img.src = src; float.style.display = 'block';
+  };
+  window.closeFloatingPreview = function(){ document.getElementById('floatingPreview').style.display = 'none'; };
+
+  // Dragging for preview
+  (function enableDrag(){
+    const float = document.getElementById('floatingPreview');
+    const header = document.getElementById('floatHeader');
+    if(!float || !header) return; // if the expected elements aren't present, skip wiring drag handlers
+    let dragging = false, offsetX = 0, offsetY = 0;
+    header.addEventListener('mousedown', e => { dragging = true; offsetX = e.clientX - float.offsetLeft; offsetY = e.clientY - float.offsetTop; document.addEventListener('mousemove', move); document.addEventListener('mouseup', stop); });
+    function move(e){ if (!dragging) return; float.style.left = (e.clientX - offsetX) + 'px'; float.style.top  = (e.clientY - offsetY) + 'px'; }
+    function stop(){ dragging = false; document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', stop); }
+  })();
+
+  // Gear modal logic
+  (function initCfg(){
+    function openCfg(){ const d = document.getElementById('cfg_backdrop'); if(!d) return; d.style.display='flex'; document.getElementById('cfg_password').value = '';
+      const err = document.getElementById('cfg_error'); if(err){ err.style.display='none'; err.textContent=''; }
+      const hint = document.getElementById('browse_hint'); if(hint) hint.style.display = 'block';
+      const MASK = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"; // bullets
+      fetch('/api/config').then(r=>r.json()).then(cfg=>{ if(cfg){
+        const inp = document.getElementById('cfg_password'); if(inp) inp.value = MASK;
+        if(cfg.ws_port) document.getElementById('cfg_ws_port').value = String(cfg.ws_port);
+        if(cfg.concurrency) document.getElementById('cfg_concurrency').value = String(cfg.concurrency);
+        if(cfg.logos_path) document.getElementById('cfg_logos_path').value = cfg.logos_path;
+        if(cfg.firmware_path) document.getElementById('cfg_firmware_path').value = cfg.firmware_path;
+        if(cfg.imagestream_path) document.getElementById('cfg_imagestream_path').value = cfg.imagestream_path;
+      }}).catch(()=>{});
+      const toggle = document.getElementById('cfg_pw_toggle'); const inp = document.getElementById('cfg_password');
+      if(toggle && inp){ toggle.onclick = async function(){ const show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; if(show){ try{ const cfg2 = await (await fetch('/api/config?include_password=1',{cache:'no-store'})).json(); if(cfg2 && typeof cfg2.password === 'string') inp.value = cfg2.password; }catch(e){} } } }
+    }
+    var g=document.getElementById('gear'); if(g) g.addEventListener('click', openCfg);
+    var closeBtn = document.getElementById('cfg_close'); if(closeBtn) closeBtn.addEventListener('click', ()=>{ document.getElementById('cfg_backdrop').style.display='none'; const h=document.getElementById('browse_hint'); if(h) h.style.display='none'; });
+    var back = document.getElementById('cfg_backdrop'); if(back) back.addEventListener('click', function(e){ if(e.target===this){ this.style.display='none'; const h=document.getElementById('browse_hint'); if(h) h.style.display='none'; } });
+    var saveBtn = document.getElementById('cfg_save'); if(saveBtn) saveBtn.addEventListener('click', function(){
+      const pwInput = document.getElementById('cfg_password');
+      const val = (pwInput && typeof pwInput.value === 'string') ? pwInput.value : '';
+      const payload = { username:'admin', ws_port: parseInt(document.getElementById('cfg_ws_port').value || '80', 10), concurrency: parseInt(document.getElementById('cfg_concurrency').value || '6', 10), logos_path: document.getElementById('cfg_logos_path').value, firmware_path: document.getElementById('cfg_firmware_path').value, imagestream_path: document.getElementById('cfg_imagestream_path').value };
+      // Only send password if eye is showing (plaintext) or value not mask
+      if (pwInput && pwInput.type === 'text') { payload.password = val; }
+      const errDiv = document.getElementById('cfg_error'); if(errDiv){ errDiv.style.display='none'; errDiv.textContent=''; }
+      fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+        .then(async r=>{
+          if(!r.ok){
+            let j = null;
+            try{ j = await r.json(); }catch(e){}
+            if(errDiv){
+              if(j && j.error === 'invalid_paths' && Array.isArray(j.details)){
+                errDiv.textContent = 'Invalid paths: ' + j.details.map(d=>d.key+': '+d.path).join('; ');
+              }else if(j && j.error){
+                errDiv.textContent = 'Error: ' + (j.error || JSON.stringify(j));
+              }else{
+                errDiv.textContent = 'Save failed';
+              }
+              errDiv.style.display = 'block';
+            }else{
+              alert('Save failed');
+            }
+            return;
+          }
+          // success
+          try{ await r.json(); }catch(e){}
+          var b=document.getElementById('cfg_backdrop'); if(b) b.style.display='none'; const h=document.getElementById('browse_hint'); if(h) h.style.display='none';
+        }).catch(e=>{
+          if(errDiv){ errDiv.textContent = 'Network error: ' + (e && e.message ? e.message : String(e)); errDiv.style.display='block'; }
+        });
+    });
+
+    // Enhanced folder picker: prefer File System Access API (showDirectoryPicker) when available
+    async function pickFolderWithFallback(pickerInput, target){
+      // First try native directory picker API (better UX and 'OK' wording in some browsers)
+      if(window.showDirectoryPicker){
+        try{
+          const handle = await window.showDirectoryPicker();
+          // We cannot reliably get an absolute path for security reasons; use the handle name as a hint
+          const name = handle.name || '';
+          if(name) target.value = name + (name.endsWith('/') ? '' : '/');
+          return;
+        }catch(e){
+          // user cancelled or API not available/allowed — fall back
+        }
+      }
+      // Fallback: trigger hidden file input (webkitdirectory). The browser UI may show 'Upload' text.
+      return new Promise(resolve => {
+        const onChange = function(e){
+          const files = e.target.files;
+          if(files && files.length){
+            let chosen = '';
+            // Prefer an absolute path if the File object exposes it (Electron, some Chromium builds)
+            try{
+              if(files[0].path) {
+                // files[0].path is an absolute OS path in some environments
+                const pth = files[0].path;
+                // If the picker returned a path to a file, extract its containing directory
+                try{
+                  // derive containing directory using JS (no require in browsers)
+                  const sep = (pth.indexOf('\\') !== -1) ? '\\' : '/';
+                  const idx = pth.lastIndexOf(sep);
+                  if(idx>0) chosen = pth.substring(0, idx+1);
+                  else chosen = pth;
+                }catch(err){ chosen = pth; }
+              }
+            }catch(ex){ /* ignore */ }
+
+            // If not available, check the raw input value (may contain full path in some browsers)
+            if(!chosen){
+              try{
+                const val = pickerInput.value || '';
+                if(/^[A-Za-z]:\\|^\\\\|^\//.test(val)){
+                  // value looks like an absolute path
+                  chosen = val;
+                }
+              }catch(ex){}
+            }
+
+            // Last resort: use webkitRelativePath to derive folder name (relative)
+            if(!chosen){
+              if(files[0].webkitRelativePath) chosen = files[0].webkitRelativePath.split('/')[0] + '/';
+              else if(files[0].name) chosen = files[0].name;
+            }
+
+            target.value = chosen;
+          }
+          pickerInput.removeEventListener('change', onChange);
+          resolve();
+        };
+        pickerInput.addEventListener('change', onChange);
+        pickerInput.click();
+      });
+    }
+
+    function openServerFolderBrowser(startPath, targetSelector){
+      const backdrop = document.getElementById('cfg_browser_backdrop');
+      const list = document.getElementById('cfg_browser_list');
+      const pathInput = document.getElementById('cfg_browser_path');
+      const selectBtn = document.getElementById('cfg_browser_select');
+      const upBtn = document.getElementById('cfg_browser_up');
+      if(!backdrop||!list||!pathInput) return;
+      let current = startPath && startPath.trim() ? startPath : '';
+      async function load(p){
+        const url = '/api/list_dir' + (p ? ('?path=' + encodeURIComponent(p)) : '');
+        list.innerHTML = 'Loading...';
+        try{
+          const r = await fetch(url);
+          const j = await r.json();
+          if(!j.ok){ list.innerHTML = '<div class="small">Error: '+(j.error||'')+'</div>'; return; }
+          current = j.path || p || '';
+          pathInput.value = current;
+          list.innerHTML = '';
+          (j.entries||[]).forEach(ent=>{
+            if(!ent.is_dir) return;
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.style.justifyContent = 'space-between';
+            row.style.padding = '6px 8px';
+            row.style.cursor = 'pointer';
+            row.textContent = ent.name;
+            row.onclick = ()=> {
+              // join current + ent.name using forward slashes
+              let base = current || '';
+              // normalize separators to '/'
+              base = base.replace(/\\/g, '/');
+              const next = base.endsWith('/') || base === '' ? (base + ent.name) : (base + '/' + ent.name);
+              load(next);
+            };
+            list.appendChild(row);
+          });
+        }catch(e){ list.innerHTML = '<div class="small">Error: '+String(e)+'</div>'; }
+      }
+      upBtn.onclick = ()=>{
+        try{
+          if(!current) return;
+          // normalize to forward slashes
+          let tmp = String(current).replace(/\\/g, '/');
+          if(tmp === '/' || tmp === '') return;
+          const parts = tmp.split('/').filter(p=>p.length>0);
+          if(parts.length <= 1){
+            // go to root or BASE_DIR equivalent
+            load('/');
+            return;
+          }
+          parts.pop();
+          const parent = '/' + parts.join('/');
+          load(parent);
+        }catch(e){}
+      };
+      document.getElementById('cfg_browser_cancel').onclick = ()=>{ backdrop.style.display='none'; };
+      selectBtn.onclick = ()=>{
+        const target = document.querySelector(targetSelector);
+        if(target){ target.value = pathInput.value; }
+        backdrop.style.display='none';
+      };
+      backdrop.style.display='flex';
+      load(current || '');
+    }
+
+    // Wire browse buttons to server-side browser
+    const fbtn = document.getElementById('cfg_firmware_browse'); if(fbtn) fbtn.addEventListener('click', ()=> openServerFolderBrowser(document.getElementById('cfg_firmware_path').value, '#cfg_firmware_path'));
+    const ibtn = document.getElementById('cfg_imagestream_browse'); if(ibtn) ibtn.addEventListener('click', ()=> openServerFolderBrowser(document.getElementById('cfg_imagestream_path').value, '#cfg_imagestream_path'));
+    const lbtn = document.getElementById('cfg_logos_browse'); if(lbtn) lbtn.addEventListener('click', ()=> openServerFolderBrowser(document.getElementById('cfg_logos_path').value, '#cfg_logos_path'));
+  })();
+  </script>
+
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Input</div>
+            <div class="row" style="gap:16px;align-items:center;">
+              <label>
+                <span class="tooltip-info-right" style="cursor:help;" data-tooltip="Video Mute Activates the Static Image.">ℹ️ Video Mute</span>
+                <input id="ckVideoMute" name="ckVideoMute" type="checkbox">
+              </label>
+              <label>Audio Mute <input id="ckAudioMute" name="ckAudioMute" type="checkbox"></label>
+              <label class="row" style="gap:8px;align-items:center;" for="selAudioSource">
+                <span>Audio Source</span>
+                <select id="selAudioSource" name="selAudioSource">
+                  <option value="hdmiin">HDMI</option>
+                  <option value="analogaudioin">Analog</option>
+                </select>
+              </label>
+              <label class="row" style="gap:6px;align-items:center;" for="selHdcp">
+                <span class="tooltip-info-right" style="cursor:help;" data-tooltip="HDCP will be disabled automatically when RTMP streaming is enabled.">ℹ️ HDCP</span>
+                <select id="selHdcp" name="selHdcp">
+                  <option value="NONE">None</option>
+                  <option value="HDCP1.4">1.4</option>
+                  <option value="HDCP2.2">2.2</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <!-- Active Streams collapsible -->
+          <div class="panel collapsible" id="panel-streams">
+            <div class="header" style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:18px;">
+                <svg class="chev" viewBox="0 0 24 24" style="cursor:pointer;"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                <div class="panel-title" style="margin:0">RTMP Server</div>
+                <span style="font-weight:600;">Go Live NOW!</span>
+                <div id="tgStream" class="toggle right-label" style="gap:2px;" title="Send RTMP Settings">
+                  <div class="pill"></div>
+                </div>
+                <div id="rtmpLed" style="width:14px;height:14px;border-radius:50%;background:#222;border:1px solid #444;"></div>
+                <span style="opacity:0.7;font-size:12px;">Loaded</span>
+                <span id="rtmpUrlDisplay" style="font-family:ui-monospace,monospace;font-size:12px;opacity:0.85;">—</span>
+              </div>
+            </div>
+            <div class="body">
+              <div id="rtmpPanel" class="stack"></div>
+              <div style="margin-top:8px;"><span class="icon add" id="addStream">➕ Add Stream</span></div>
+            </div>
+          </div>
+				<!-- Ticker collapsible -->
+				<div class="panel collapsible" id="panel-ticker">
+				  <div class="header">
+					<div style="display:flex;align-items:center;gap:8px;">
+					  <svg class="chev" viewBox="0 0 24 24">
+						<path fill="currentColor" d="M8 5v14l11-7z" />
+					  </svg>
+					  <div class="panel-title" style="margin:0">Ticker</div>
+					  <span id="tickerLoadedText" style="margin-left:12px;font-size:0.9em;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px;flex:0 1 auto;"></span>
+					</div>
+				  </div>
+				  <div class="body">
+					<div class="row" style="gap:12px;align-items:center;">
+					  <span>Direction</span>
+					  <select id="selTickerDir">
+						<option value="rtl">Right→Left</option>
+						<option value="ltr">Left→Right</option>
+					  </select>
+
+				  <div style="display:flex;align-items:center;gap:10px;">
+					<div id="tgTicker" class="toggle right-label">
+					  <span class="label">Enable</span><div class="pill"></div>
+					</div>
+						<div id="tickerColorWrap" style="display:inline-flex;align-items:center;gap:6px;">
+						  <label for="tickerColor" style="font-size:12px;">Color:</label>
+						  <input type="color" id="tickerColor" name="tickerColor" value="#ff7000"
+								 style="width:28px;height:28px;border:none;cursor:pointer;border-radius:4px;background:transparent;padding:0;">
+						</div>
+					  </div>
+					</div>
+
+					<hr class="sep">
+					<div id="tickerRows" class="stack"></div>
+					<div style="margin-top:8px;"><span class="icon add" id="addTicker">➕ Add Ticker</span></div>
+				  </div>
+				</div>  <!-- end ticker -->
+<!-- NEW LOGO PANEL (LEFT COLUMN) -->
+<div class="panel">
+  <div class="row" style="justify-content:space-between;align-items:center;">
+    <div class="panel-title">Logo</div>
+    <div id="tgLogo" class="toggle right-label">
+      <span class="label">Enable</span><div class="pill"></div>
+    </div>
+  </div>
+
+  <!-- Logo Controls -->
+  <div class="row" style="gap:12px;margin-top:8px;">
+    <div style="flex:1;">
+      <label style="display:block;font-size:0.9em;margin-bottom:4px;">Transparency (1-255)</label>
+      <input type="number" id="logoTransparency" min="1" max="255" value="255" style="width:100%;padding:4px;" />
+    </div>
+    <div style="flex:1;">
+      <label style="display:block;font-size:0.9em;margin-bottom:4px;">Height</label>
+      <input type="number" id="logoHeight" min="1" max="100" value="10" style="width:100%;padding:4px;" />
+    </div>
+    <div style="flex:1;">
+      <label style="display:block;font-size:0.9em;margin-bottom:4px;">Position</label>
+      <select id="logoPosition" style="width:100%;padding:4px;">
+        <option value="upper-right">Upper Right</option>
+        <option value="upper-left">Upper Left</option>
+        <option value="lower-right">Lower Right</option>
+        <option value="lower-left">Lower Left</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Logo Coordinates (Manual Override) -->
+  <div id="logoCoordinatesRow" class="row" style="gap:12px;margin-top:8px;display:none;">
+    <div style="flex:1;">
+      <label style="display:block;font-size:0.9em;margin-bottom:4px;">Horizontal (X)</label>
+      <input type="number" id="logoHorizontal" min="0" max="98" value="88" style="width:100%;padding:4px;" />
+    </div>
+    <div style="flex:1;">
+      <label style="display:block;font-size:0.9em;margin-bottom:4px;">Vertical (Y)</label>
+      <input type="number" id="logoVertical" min="0" max="100" value="10" style="width:100%;padding:4px;" />
+    </div>
+  </div>
+
+  <!-- Active Logo Preview -->
+  <div class="slot" style="text-align:center;">
+    <img id="logoPreview" class="thumb" alt="Active Logo" onerror="this.closest('.slot').classList.add('placeholder')" onload="this.closest('.slot').classList.remove('placeholder')" />
+    <div class="img-ph" style="width:210px;height:118px;">Choose Image</div>
+    <div class="small" style="margin-top:4px;">Active Logo</div>
+  </div>
+
+  <!-- Grid Logo Slots -->
+  <div id="logoGrid"
+       style="
+         display:grid;
+         grid-template-columns:repeat(auto-fill, 180px);
+         gap:1px;
+         margin-top:12px;
+       ">
+  </div>
+</div>
+
+</div> <!-- FIX: closes LEFT COLUMN -->
+
+<div class="stack">  <!-- RIGHT COLUMN -->
+  <div class="panel">
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <div class="panel-title">Static Image</div>
+
+              <div id="tgImageStream" class="toggle right-label" title="Maps to Video Mute (on=mute)">
+                <span class="label">Enable</span><div class="pill"></div>
+              </div>
+            </div>
+            <div class="slot" style="text-align:center;">
+        <img id="activeImage" class="thumb" alt="Active Image" onerror="this.closest('.slot').classList.add('placeholder')" onload="this.closest('.slot').classList.remove('placeholder')" />
+        <div class="img-ph" style="width:210px;height:118px;">Select Encoder</div>
+			  <div class="small" style="margin-top:4px;">Active Image</div>
+			</div>
+			<div id="imageSlots" style="display:grid;grid-template-columns:repeat(auto-fill,180px);gap:1px;margin-top:12px;justify-content:center;"></div>
+          </div>
+        </div>
+      </div>
+
+          <!-- Hint: show copying fallback for users who can't browse (hidden until config modal opens) -->
+          
+    </div>
+  </div>
+
+<!-- Floating MJPEG Preview Window -->
+<div id="floatingPreview"
+     style="display:none;position:fixed;top:120px;left:120px;width:640px;height:360px;
+            background:rgba(0,0,0,0.85);border:1px solid #444;border-radius:8px;
+            z-index:9999;box-shadow:0 0 14px rgba(0,0,0,0.7);resize:both;overflow:hidden;">
+
+  <div id="floatHeader"
+       style="background:#222;color:#fff;padding:6px 10px;font-size:13px;
+              display:flex;justify-content:space-between;align-items:center;cursor:move;">
+    <span id="floatTitle">Live Preview</span>
+    <button onclick="closeFloatingPreview()"
+            style="background:none;border:none;color:#fff;font-weight:bold;
+                   cursor:pointer;font-size:16px;">✕</button>
+  </div>
+
+  <img id="floatingImg"
+       src=""
+       alt="Live MJPEG"
+       style="width:100%;height:calc(100% - 32px);object-fit:contain;">
+</div>
+
+<script>
+window.openPreviewPopup = function(src){
+  const float = document.getElementById('floatingPreview');
+  const img = document.getElementById('floatingImg');
+  if (!src) return;
+  img.src = src;
+  float.style.display = 'block';
+};
+
+window.closeFloatingPreview = function(){
+  document.getElementById('floatingPreview').style.display = 'none';
+};
+
+(function enableDrag(){
+  const float = document.getElementById('floatingPreview');
+  const header = document.getElementById('floatHeader');
+  if(!float || !header) return; // elements not present yet
+
+  let dragging = false, offsetX = 0, offsetY = 0;
+
+  header.addEventListener('mousedown', e => {
+    dragging = true;
+    offsetX = e.clientX - float.offsetLeft;
+    offsetY = e.clientY - float.offsetTop;
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', stop);
+  });
+
+  function move(e){
+    if (!dragging) return;
+    float.style.left = (e.clientX - offsetX) + 'px';
+    float.style.top  = (e.clientY - offsetY) + 'px';
+  }
+
+  function stop(){
+    dragging = false;
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', stop);
+  }
+})();
+</script>
+
+<!-- Load Producer JS LAST -->
+<script src="/ui/producer.js?v=R14_FIXED_FULL"></script>
+
+<!-- Connection Monitoring -->
+<script>
+let connectionCheckInterval = null;
+let heartbeatInterval = null;
+let lastSuccessfulHeartbeat = Date.now();
+const CONNECTION_TIMEOUT_MS = 15000;
+const HEARTBEAT_INTERVAL_MS = 5000;
+
+function showConnectionBanner() {
+  const banner = document.getElementById("connection_banner");
+  if(banner && banner.style.display === 'none') {
+    banner.style.display = 'block';
+    document.body.style.paddingTop = '50px';
+  }
+}
+
+function hideConnectionBanner() {
+  const banner = document.getElementById("connection_banner");
+  if(banner && banner.style.display === 'block') {
+    banner.style.display = 'none';
+    document.body.style.paddingTop = '0';
+  }
+}
+
+function startConnectionMonitoring() {
+  if(heartbeatInterval) return;
+  
+  // Send heartbeat pings
+  heartbeatInterval = setInterval(async () => {
+    try {
+      const response = await fetch('/api/heartbeat', { cache: 'no-store' });
+      if(response.ok) {
+        lastSuccessfulHeartbeat = Date.now();
+        console.log('[ConnectionMonitor] Heartbeat successful, hiding banner');
+        hideConnectionBanner();
+      }
+    } catch(e) {
+      console.log('[ConnectionMonitor] Heartbeat failed:', e.message);
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+  
+  // Check if heartbeat has stalled
+  if(connectionCheckInterval) return;
+  connectionCheckInterval = setInterval(async () => {
+    const timeSinceLastSuccess = Date.now() - lastSuccessfulHeartbeat;
+    if(timeSinceLastSuccess > CONNECTION_TIMEOUT_MS) {
+      console.log('[ConnectionMonitor] CONNECTION TIMEOUT - showing banner after', CONNECTION_TIMEOUT_MS, 'ms without heartbeat');
+      showConnectionBanner();
+    }
+  }, 2000);
+}
+
+function stopConnectionMonitoring() {
+  if(heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  if(connectionCheckInterval) {
+    clearInterval(connectionCheckInterval);
+    connectionCheckInterval = null;
+  }
+}
+
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  // Just pass through - heartbeat is handled separately
+  try {
+    const response = await originalFetch.apply(this, args);
+    return response;
+  } catch(e) {
+    throw e;
+  }
+};
+
+window.onbeforeunload = () => {
+  stopConnectionMonitoring();
+};
+
+startConnectionMonitoring();
+</script>
+
+</body>
+</html>

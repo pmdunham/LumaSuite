@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+*.spec
+build/
+dist/
+ui_temp_build/
+
+# Temporary files
+*.tmp
+*.log
+.tmp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Dev/cache files
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# JSON cache files (optional - uncomment if you want to track these)
+# producer_state.json
+# producer_cache.json
+# units_cache.json
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Large binary files
+dist/Windows/*.exe
