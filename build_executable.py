@@ -42,7 +42,7 @@ def build_windows():
     ui_src = PROJECT_DIR / 'ui'
     ui_temp = PROJECT_DIR / 'ui_temp_build'
     hallway_logo = PROJECT_DIR / 'hallway.png'
-    footer_logo = PROJECT_DIR / 'All-Three-Logos-02-scaled.png'
+    footer_logo = PROJECT_DIR / 'atlona.png'
     icon_arg = f"--icon={PROJECT_DIR / 'ui' / 'favicon.ico'}" if (PROJECT_DIR / 'ui' / 'favicon.ico').exists() else None
 
     if not ui_src.exists():

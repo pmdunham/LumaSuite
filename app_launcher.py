@@ -220,7 +220,7 @@ class AppWindow:
         info.pack(pady=(10, 4))
 
         footer_logo_candidates = [
-            BASE_DIR / "All-Three-Logos-02-scaled.png",
+            BASE_DIR / "atlona.png",
             BASE_DIR / "ui" / "companylogo.png",
         ]
         footer_logo_path = next((p for p in footer_logo_candidates if p.exists()), None)
