@@ -79,3 +79,11 @@ ui/localdata/producer_cache.json
 
 # Large binary files
 dist/Windows/*.exe
+
+# Exclude non-source asset/archive folders from git
+Logos/
+ToDelete/
+imagesStream/
+firmware/
+tools/
+ui/imagestream/
