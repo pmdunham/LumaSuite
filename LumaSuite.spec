@@ -5,10 +5,10 @@ block_cipher = None
 
 
 a = Analysis(
-    ['C:\\softwareDEV\\lumaSuite\\app_launcher.py'],
+    ['app_launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\softwareDEV\\lumaSuite\\ui_temp_build', 'ui'), ('C:\\softwareDEV\\lumaSuite\\hallway.png', '.'), ('C:\\softwareDEV\\lumaSuite\\atlona.png', '.')],
+    datas=[('ui_temp_build', 'ui'), ('hallway.png', '.'), ('atlona.png', '.')],
     hiddenimports=['flask', 'werkzeug', 'flask_cors', 'requests', 'PIL', 'PIL.Image', 'PIL.ImageTk', 'pystray', 'pystray._win32'],
     hookspath=[],
     hooksconfig={},
@@ -41,5 +41,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\softwareDEV\\lumaSuite\\ui\\favicon.ico'],
+    icon=['ui\\favicon.ico'],
 )
+
