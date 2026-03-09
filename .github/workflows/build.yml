@@ -1,4 +1,4 @@
-name: Build LumaSuite
+name: Build LumaSuite1.0
 
 on:
   push:
