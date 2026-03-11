@@ -68,6 +68,29 @@ if IS_FROZEN:
 else:
     BASE_DIR = Path(__file__).parent
 
+
+def resolve_asset(*relative_parts):
+    """Resolve asset paths across frozen onefile/onedir and source runs."""
+    rel = Path(*relative_parts)
+    candidates = [
+        BASE_DIR / rel,
+        Path(__file__).parent / rel,
+        Path.cwd() / rel,
+    ]
+
+    if IS_FROZEN:
+        exe_dir = Path(sys.executable).resolve().parent
+        candidates.extend([
+            exe_dir / rel,
+            exe_dir / 'ui' / rel.name,
+            BASE_DIR / 'ui' / rel.name,
+        ])
+
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
+
 # Add the app directory to path so we can import the server
 sys.path.insert(0, str(BASE_DIR))
 
@@ -89,6 +112,7 @@ class AppWindow:
         self.logo_photo = None
         self.footer_logo_image = None
         self.footer_logo_photo = None
+        self.window_icon_photo = None
         self.tray_icon = None
         self.window_width = 540
         self.window_height = 420
@@ -99,12 +123,21 @@ class AppWindow:
         self.root.resizable(False, False)
         
         # Set window icon to favicon
-        favicon_path = BASE_DIR / "ui" / "favicon.ico"
-        if favicon_path.exists():
+        favicon_path = resolve_asset("ui", "favicon.ico")
+        if favicon_path and favicon_path.exists():
             try:
                 self.root.iconbitmap(favicon_path)
             except Exception as e:
                 log_message(f"Could not set window icon: {e}")
+
+        # Linux/macOS often prefer PNG iconphoto over ICO iconbitmap.
+        png_icon = resolve_asset("ui", "companylogo.png")
+        if png_icon and png_icon.exists():
+            try:
+                self.window_icon_photo = tk.PhotoImage(file=str(png_icon))
+                self.root.iconphoto(True, self.window_icon_photo)
+            except Exception as e:
+                log_message(f"Could not set PNG window icon: {e}")
         
         # Center window on screen
         self.root.update_idletasks()
@@ -152,8 +185,8 @@ class AppWindow:
         main_frame.place(relx=0.5, rely=0.5, anchor="center", width=480, height=390)
         
         # Load and display logo on top of black background
-        logo_path = BASE_DIR / "hallway.png"
-        if logo_path.exists():
+        logo_path = resolve_asset("hallway.png")
+        if logo_path and logo_path.exists():
             try:
                 self.logo_image = Image.open(logo_path)
                 # Resize logo to fit nicely at top
@@ -166,6 +199,8 @@ class AppWindow:
                 logo_label.pack(pady=(6, 6))
             except Exception as e:
                 log_message(f"Could not load logo image: {e}")
+        else:
+            log_message("Could not find hallway.png for launcher header")
         
         # Title with better styling
         title = tk.Label(
@@ -258,10 +293,10 @@ class AppWindow:
         info.pack(pady=(10, 4))
 
         footer_logo_candidates = [
-            BASE_DIR / "atlona.png",
-            BASE_DIR / "ui" / "companylogo.png",
+            resolve_asset("atlona.png"),
+            resolve_asset("ui", "companylogo.png"),
         ]
-        footer_logo_path = next((p for p in footer_logo_candidates if p.exists()), None)
+        footer_logo_path = next((p for p in footer_logo_candidates if p and p.exists()), None)
         if footer_logo_path:
             try:
                 self.footer_logo_image = Image.open(footer_logo_path)

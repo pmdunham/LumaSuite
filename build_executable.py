@@ -292,6 +292,28 @@ def build_linux():
         pyinstaller_cmd.insert(6, icon_arg)
 
     run_command(pyinstaller_cmd)
+
+    # Add a desktop launcher and icon for Linux desktops.
+    linux_dist = PROJECT_DIR / 'dist' / 'Linux'
+    icon_src = PROJECT_DIR / 'ui' / 'companylogo.png'
+    icon_dst = linux_dist / 'LumaSuite.png'
+    desktop_file = linux_dist / 'LumaSuite.desktop'
+
+    if icon_src.exists():
+        shutil.copy2(icon_src, icon_dst)
+
+    desktop_content = """[Desktop Entry]
+Type=Application
+Name=LumaSuite
+Comment=LumaSuite control launcher
+Exec=./LumaSuite
+Icon=./LumaSuite.png
+Terminal=false
+Categories=Network;Utility;
+"""
+    desktop_file.write_text(desktop_content, encoding='utf-8')
+    os.chmod(desktop_file, 0o755)
+
     print("[OK] Linux binary built successfully")
     print(f"  Location: {PROJECT_DIR / 'dist' / 'Linux' / 'LumaSuite'}")
 
