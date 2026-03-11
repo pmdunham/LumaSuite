@@ -45,14 +45,16 @@ For reproducible builds (recommended for release artifacts), use:
 
 ### macOS (.app)
 
+**Important:** Builds include universal binary support (both Intel x86_64 and Apple Silicon ARM64).
+
 1. **Install dependencies:**
    ```bash
    pip install -r requirements-build-lock.txt
    ```
 
-2. **Build the macOS app:**
+2. **Build the macOS app (universal):**
    ```bash
-   python build_executable.py mac
+   python build_executable.py macos
    ```
 
 3. **Output:**
@@ -66,6 +68,10 @@ For reproducible builds (recommended for release artifacts), use:
    - The default browser will auto-launch with `http://127.0.0.1:8090` (or next available port)
    - Click "Open Browser" to manually open the UI
    - Click "Exit" to close the server and app
+
+5. **Architecture Support:**
+   - The built `.app` runs on both Intel (x86_64) and Apple Silicon (ARM64) Macs
+   - First run may trigger Gatekeeper check; use Cmd+Space → type app name → Cmd+Enter to open
 
 ### Linux (binary)
 
@@ -84,10 +90,25 @@ For reproducible builds (recommended for release artifacts), use:
    dist/Linux/LumaSuite
    ```
 
-4. **Run the binary:**
+4. **Make executable (if needed):**
+   ```bash
+   chmod +x dist/Linux/LumaSuite
+   ```
+
+5. **Run the binary:**
    ```bash
    ./dist/Linux/LumaSuite
    ```
+   
+   Or with GUI window (default):
+   ```bash
+   ./dist/Linux/LumaSuite
+   ```
+
+6. **Requirements:**
+   - X11/Wayland display server
+   - Python Tkinter (usually included in Linux distributions)
+   - For headless systems, redirect output and use SSH X11 forwarding if needed
 
 ## Features
 
@@ -121,6 +142,13 @@ LumaSuite.app/Contents/MacOS/LumaSuite --host=0.0.0.0 --port=8080
 ### macOS
 - **"LumaServer cannot be opened"** - Right-click → Open (or lower security settings temporarily)
 - **"Developer cannot be verified"** - System Preferences → Security & Privacy → Open Anyway
+- **"bad CPU type in executable"** - Ensure you're running the correct architecture build (universal binary works on both Intel and Apple Silicon)
+- **Terminal window appears** - This is the control window (intentional); the browser should auto-launch. If not, use "Open Browser" button
+
+### Linux
+- **No window appears / "bad display"** - Ensure X11 or Wayland is running. Use `DISPLAY=:0 ./LumaSuite` if running from SSH
+- **"ImportError" for pystray or Tkinter** - Install: `sudo apt-get install python3-tk python3-pystray libx11-dev libxkbcommon-x11-0`
+- **Terminal window appears instead of GUI** - Ensure you're running the correct build (use `python build_executable.py linux`)
 
 ## Distribution
 

@@ -122,12 +122,12 @@ def build_windows():
     print(f"  Location: {PROJECT_DIR / 'dist' / 'Windows' / 'LumaSuite.exe'}")
 
 def build_mac():
-    """Build macOS .app"""
+    """Build macOS .app (universal binary for both Intel and Apple Silicon)"""
     if platform.system() != 'Darwin':
         print("macOS build must be run on macOS. Skipping.")
         return
     print("\n" + "="*60)
-    print("Building macOS .app")
+    print("Building macOS .app (universal binary)")
     print("="*60)
     
     add_data_sep = ':'
@@ -136,7 +136,13 @@ def build_mac():
     build_target = PROJECT_DIR / 'build' / 'macOS'
     hallway_logo = PROJECT_DIR / 'hallway.png'
     footer_logo = PROJECT_DIR / 'atlona.png'
-    icon_arg = f"--icon={PROJECT_DIR / 'ui' / 'favicon.ico'}" if (PROJECT_DIR / 'ui' / 'favicon.ico').exists() else None
+    
+    # Look for macOS-specific icon (.icns), fallback to PNG
+    icon_arg = None
+    if (PROJECT_DIR / 'ui' / 'LumaSuite.icns').exists():
+        icon_arg = f"--icon={PROJECT_DIR / 'ui' / 'LumaSuite.icns'}"
+    elif (PROJECT_DIR / 'ui' / 'companylogo.png').exists():
+        icon_arg = f"--icon={PROJECT_DIR / 'ui' / 'companylogo.png'}"
 
     if not ui_src.exists():
         print(f"Error: UI folder not found at {ui_src}")
@@ -157,6 +163,7 @@ def build_mac():
         '--windowed',
         '--name=LumaSuite',
         '--osx-bundle-identifier=com.lumasuite.app',
+        '--target-architecture=universal2',
         '--add-data', f"{ui_src}{add_data_sep}ui",
         '--add-data', f"{hallway_logo}{add_data_sep}.",
         '--add-data', f"{footer_logo}{add_data_sep}.",
@@ -170,13 +177,15 @@ def build_mac():
         '--hidden-import=PIL',
         '--hidden-import=PIL.Image',
         '--hidden-import=PIL.ImageTk',
+        '--hidden-import=pystray',
+        '--hidden-import=pystray._darwin',
         str(LAUNCHER)
     ]
     if icon_arg:
         pyinstaller_cmd.insert(6, icon_arg)
     
     run_command(pyinstaller_cmd)
-    print("✓ macOS .app built successfully")
+    print("✓ macOS .app built successfully (universal binary)")
     print(f"  Location: {PROJECT_DIR / 'dist' / 'macOS' / 'LumaSuite.app'}")
 
 def build_linux():
@@ -194,6 +203,11 @@ def build_linux():
     build_target = PROJECT_DIR / 'build' / 'Linux'
     hallway_logo = PROJECT_DIR / 'hallway.png'
     footer_logo = PROJECT_DIR / 'atlona.png'
+    
+    # Look for PNG icon for Linux
+    icon_arg = None
+    if (PROJECT_DIR / 'ui' / 'companylogo.png').exists():
+        icon_arg = f"--icon={PROJECT_DIR / 'ui' / 'companylogo.png'}"
 
     if not ui_src.exists():
         print(f"Error: UI folder not found at {ui_src}")
@@ -211,6 +225,7 @@ def build_linux():
         sys.executable, '-m', 'PyInstaller',
         '--clean',
         '--onefile',
+        '--windowed',
         '--name=LumaSuite',
         '--add-data', f"{ui_src}{add_data_sep}ui",
         '--add-data', f"{hallway_logo}{add_data_sep}.",
@@ -226,8 +241,11 @@ def build_linux():
         '--hidden-import=PIL.Image',
         '--hidden-import=PIL.ImageTk',
         '--hidden-import=pystray',
+        '--hidden-import=pystray._xlib',
         str(LAUNCHER)
     ]
+    if icon_arg:
+        pyinstaller_cmd.insert(6, icon_arg)
 
     run_command(pyinstaller_cmd)
     print("✓ Linux binary built successfully")

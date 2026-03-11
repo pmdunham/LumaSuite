@@ -57,19 +57,19 @@ Server runs on `http://localhost:5000`
 ### Build Standalone Executables
 ```bash
 python build_executable.py windows   # Windows
-python build_executable.py macos     # macOS
+python build_executable.py macos     # macOS (universal binary: Intel + Apple Silicon)
 python build_executable.py linux     # Linux
 ```
 
 Outputs:
 
 - `dist/Windows/LumaSuite.exe`
-- `dist/macOS/LumaSuite.app`
+- `dist/macOS/LumaSuite.app` (runs on Intel x86_64 and Apple Silicon ARM64)
 - `dist/Linux/LumaSuite`
 
 Note: Build each target on its matching OS, or use GitHub Actions workflow `.github/workflows/build-cross-platform.yml`.
 
-Reproducibility tip: use `requirements-build-lock.txt` locally and in CI to reduce artifact size/content drift between builds.
+Reproducibility tip: use `requirements-build-lock.txt` locally and in CI to reduce artifact size/content drift between builds. See [BUILD_STANDALONE.md](BUILD_STANDALONE.md) for detailed instructions and troubleshooting.
 
 ### Using the Launcher
 ```bash
