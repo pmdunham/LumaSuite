@@ -52,6 +52,24 @@ def install_pyinstaller():
         print("Installing PyInstaller...")
         run_command([sys.executable, '-m', 'pip', 'install', 'pyinstaller'])
 
+
+def install_build_dependencies():
+    """Install pinned build/runtime dependencies required for packaging."""
+    lock_file = PROJECT_DIR / 'requirements-build-lock.txt'
+    req_file = PROJECT_DIR / 'requirements-build.txt'
+
+    if lock_file.exists():
+        selected = lock_file
+    elif req_file.exists():
+        selected = req_file
+    else:
+        print("Error: No requirements-build-lock.txt or requirements-build.txt found")
+        sys.exit(1)
+
+    print(f"Installing build dependencies from {selected.name}...")
+    run_command([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
+    run_command([sys.executable, '-m', 'pip', 'install', '-r', str(selected)])
+
 def build_windows():
     """Build Windows .exe"""
     print("\n" + "="*60)
@@ -118,7 +136,7 @@ def build_windows():
     print("Cleaning up temporary UI folder...")
     _remove_path(ui_temp)
     
-    print("✓ Windows .exe built successfully")
+    print("[OK] Windows .exe built successfully")
     print(f"  Location: {PROJECT_DIR / 'dist' / 'Windows' / 'LumaSuite.exe'}")
 
 def build_mac():
@@ -208,7 +226,7 @@ def build_mac():
         pyinstaller_cmd.insert(6, icon_arg)
     
     run_command(pyinstaller_cmd)
-    print("✓ macOS .app built successfully (universal binary)")
+    print("[OK] macOS .app built successfully (universal binary)")
     print(f"  Location: {PROJECT_DIR / 'dist' / 'macOS' / 'LumaSuite.app'}")
 
 def build_linux():
@@ -271,7 +289,7 @@ def build_linux():
         pyinstaller_cmd.insert(6, icon_arg)
 
     run_command(pyinstaller_cmd)
-    print("✓ Linux binary built successfully")
+    print("[OK] Linux binary built successfully")
     print(f"  Location: {PROJECT_DIR / 'dist' / 'Linux' / 'LumaSuite'}")
 
 def main():
@@ -286,7 +304,7 @@ def main():
     # Install dependencies
     print("\nChecking dependencies...")
     ui_src = PROJECT_DIR / 'ui'
-    install_pyinstaller()
+    install_build_dependencies()
     
     if not ui_src.exists():
         print(f"Error: UI folder not found at {ui_src}")
