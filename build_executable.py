@@ -179,7 +179,7 @@ def build_mac():
     pyinstaller_cmd = [
         sys.executable, '-m', 'PyInstaller',
         '--clean',
-        '--onefile',
+        '--onedir',
         '--windowed',
         '--name=LumaSuite',
         '--osx-bundle-identifier=com.lumasuite.app',
@@ -197,6 +197,9 @@ def build_mac():
         '--hidden-import=PIL',
         '--hidden-import=PIL.Image',
         '--hidden-import=PIL.ImageTk',
+        '--collect-submodules=PIL',
+        '--collect-data=PIL',
+        '--collect-binaries=PIL',
         '--hidden-import=pystray',
         '--hidden-import=pystray._darwin',
         str(LAUNCHER)
