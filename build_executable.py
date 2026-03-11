@@ -140,16 +140,29 @@ def build_mac():
     # Look for macOS-specific icon (.icns format required for proper bundling)
     # PNG won't bundle correctly in .app; skip icon if .icns not found
     icon_arg = None
-    icns_path = PROJECT_DIR / 'ui' / 'LumaSuite.icns'
-    if icns_path.exists():
-        icon_arg = f"--icon={icns_path}"
-        print(f"Using custom icon: {icns_path}")
-    else:
-        print("Note: No .icns icon found. To add a custom icon:")
-        print("  1. Convert ui/companylogo.png to ui/LumaSuite.icns")
-        print("  2. Use imagemagick: convert ui/companylogo.png -define icon:auto-resize=256,128,96,64,48,32,16 ui/LumaSuite.icns")
-        print("  3. Or use online converter: cloudconvert.com (PNG to ICNS)")
-        print("  App will use default macOS icon for now.")
+    icon_candidates = [
+        PROJECT_DIR / 'ui' / 'LumaSuite.icns',
+        PROJECT_DIR / 'ui' / 'favicon.icns',
+        PROJECT_DIR / 'ui' / 'icon.icns'
+    ]
+    
+    print("Looking for .icns icon files...")
+    for icns_path in icon_candidates:
+        print(f"  Checking: {icns_path} ... ", end='')
+        if icns_path.exists():
+            icon_arg = f"--icon={str(icns_path.resolve())}"
+            print(f"FOUND")
+            print(f"Using icon: {icon_arg}")
+            break
+        else:
+            print("not found")
+    
+    if not icon_arg:
+        print("WARNING: No .icns icon found in ui/ folder")
+        print("  Expected one of: LumaSuite.icns, favicon.icns, icon.icns")
+        print("  To add a custom icon:")
+        print("    convert ui/companylogo.png -define icon:auto-resize=256,128,96,64,48,32,16 ui/favicon.icns")
+        print("    Or use online converter: cloudconvert.com (PNG to ICNS)")
 
     if not ui_src.exists():
         print(f"Error: UI folder not found at {ui_src}")
